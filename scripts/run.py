@@ -6,9 +6,9 @@ import numpy
 def singleRun():
 
     weight = 'prom'
-    alpha = 1.47
-    beta = 0.15
-    harbourBonus = 0.01
+    alpha = 1
+    beta = 0.08
+    harbourBonus = 0.86
     cost = entropy.loadCosts('../data/costMatrix.csv')
     sites = '../data/cities_weights.csv'
 

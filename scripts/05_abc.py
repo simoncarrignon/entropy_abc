@@ -116,7 +116,7 @@ def main():
 
     parser.add_argument("-s", "--sites", help="sites file", default='../data/cities_weights.csv')
     parser.add_argument("-c", "--cost", help="cost matrix file", default='../data/costMatrix.csv')
-    parser.add_argument("-o", "--output", help="CSV file to store output", default='fooabc')
+    parser.add_argument("-o", "--output", help="CSV file to store output", default='asia_minor')
     parser.add_argument("-r", "--runs", help="number of runs", type=int, default=1000)
     parser.add_argument("-t", "--tolerance", help="tolerance level", type=float, default=1)
 

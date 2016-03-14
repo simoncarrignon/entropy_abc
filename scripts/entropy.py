@@ -31,32 +31,38 @@ class Site:
         for siteK in Site.sites:
             codeK = self.ident+'_'+siteK.ident
             totalFlow +=  math.pow(siteK.weight, alpha) * math.exp(-1.0 * beta * Site.cost[codeK])
-#        print('total flow from:',self,'is',totalFlow)
+        print('total flow from:',self,'is',totalFlow)
         # for each site divide value and add to their variation
+        flowToGive = 0
+        flowToGive2 = 0
         for site in Site.sites:
             code = self.ident+'_'+site.ident
-            flow = self.weight * math.pow(site.weight, alpha) * math.exp(-1.0 * beta * Site.cost[code])
+            flow = math.pow(site.weight, alpha) * math.exp(-1.0 * beta * Site.cost[code])
             flow /= totalFlow
-#            print('\tfrom:',self.ident,'to:',site.ident,'flow:',flow)
+            flowToGive += flow
+            flow *= self.weight
+            print('\tfrom:',self.ident,'to:',site.ident,'with weight:',site.weight,'and dist:',Site.cost[code],'flow:',flow)
+            flowToGive2 +=  flow
             site.variation += flow
         # compute total flow
-#        print('aggregated flow from:',self,'is var: {0:.5f}'.format(self.variation))
+        print('aggregated flow from:',self,'is var: {0:.5f}'.format(flowToGive),'2: {0:.5f}'.format(flowToGive2))
 
     def applyVariation(self, changeRate, harbourBonus):
 #        print('final variation for',self.ident,'is',self.variation)
         oldWeight = self.weight
+        realDiff = self.variation-oldWeight
 #        if self.isHarbour:
 #            self.variation = self.variation + self.variation*harbourBonus
 #        else:
 #            self.variation = self.variation - self.variation*harbourBonus
         # TODO multiply weight by some K before modifying variation?
         self.weight = self.weight + changeRate*(self.variation - self.weight)
+        print('old:',oldWeight,'new:',self,'size change:',abs(self.weight-oldWeight)/oldWeight,'diff:',realDiff,'variation:',self.variation)
         self.variation = 0
-#        print('old:',oldWeight,'new:',self,'diff:',abs(self.weight-oldWeight))
-        return abs(self.weight-oldWeight)
+        return abs(realDiff)/oldWeight
 
     def __str__(self):
-        return 'site '+self.ident+' size: '+str(self.size)+' pos: '+str(self.x)+'/'+str(self.y)+' weight: {0:.5f}'.format(self.weight)
+        return 'site '+self.ident+' size: '+str(self.size)+' weight: {0:.5f}'.format(self.weight)
 
 class Experiment:
 
@@ -69,7 +75,7 @@ class Experiment:
         self.harbourBonus = harbourBonus
 
         self.delta = 0.01
-        self.changeRate = 0.01
+        self.changeRate = 0.1
         self.sizeFlow = 1.0
 
         self.distRelevance = 0.0
@@ -140,33 +146,65 @@ def runEntropy(experiment, costMatrix, sites, storeResults):
 
     print('beginning run with priors', experiment)
 
-    oldDiff = 0
     diff = sys.float_info.max
     i = 0
-    while abs(diff-oldDiff) > experiment.delta:
+#    while abs(diff-oldDiff) > experiment.delta:
+    underStoppingRate = 0
+    while underStoppingRate<10:
         for site in Site.sites:
             site.computeFlow(experiment.sizeFlow, experiment.alpha, experiment.beta)
-        oldDiff = diff
         diff = 0
+
         for site in Site.sites:
             diff += site.applyVariation(experiment.changeRate, experiment.harbourBonus)
-#        print('step:',i,'finished, diff:',abs(diff-oldDiff))
+
+        totalWeight = 0
+        for site in Site.sites:
+            totalWeight += site.weight
+           
+        diff /= len(Site.sites)            
+        if diff<0.001:
+            underStoppingRate += 1
+        else:
+            underStoppingRate = 0
+        print('step:',i,'finished, total weight:',totalWeight,'diff:',diff,'stopping:',underStoppingRate)
+        for site in Site.sites:
+            print(site)
         i += 1
-    print('simulation finished with diff;',abs(diff-oldDiff))
+    print('simulation finished with diff;',diff)
    
     relativeWeights = numpy.full((len(Site.sites), len(Site.sites)), 0, dtype=float)
     for i in range(len(Site.sites)):
         for j in range(i):
             relativeWeights[i][j] = Site.sites[i].weight/Site.sites[j].weight
 
-    result = Site.relativeSizes-relativeWeights
+    result = numpy.absolute(Site.relativeSizes-relativeWeights)
    
-    numpy.set_printoptions(suppress=True, precision=4, threshold=100000)            
+    numpy.set_printoptions(suppress=True, precision=4, threshold=100000)
     print('results run:',experiment.numRun)
-    print('\treal:',Site.relativeSizes)
-    print('\tsim:',relativeWeights)
-    print('\tresult:',result)
-    print('\tfinal distance:',numpy.absolute(result.sum()))
+
+
+    """
+    print('#######REAL########')
+    for i in range(0,len(Site.relativeSizes[0])):
+            print('row:',i)
+            print(Site.relativeSizes[i])
+
+    print('#######SIM########')
+    for i in range(0,len(Site.relativeSizes[0])):
+            print('row:',i)
+            print(relativeWeights[i])
+ 
+    print('#######RESULT########')
+    for i in range(0,len(Site.relativeSizes[0])):
+            print('row:',i)
+            print(result[i])
+    """
+
+#    print('\treal:',Site.relativeSizes)
+#    print('\tsim:',relativeWeights)
+#    print('\tresult:',result)
+    print('\tfinal distance:',result.sum())
     print('end results run:', experiment.numRun)
   
     if(storeResults):
