@@ -9,11 +9,11 @@ import math
 import time
 
 class Prior:
-    def __init__(self, weight, alpha, beta, coastBonus): 
+    def __init__(self, weight, alpha, beta, harbourBonus): 
         self.weight = weight
         self.alpha = alpha
         self.beta = beta
-        self.coastBonus = coastBonus
+        self.harbourBonus = harbourBonus
 
     def sampleWeight(self):
         return random.choice(self.weight)
@@ -25,10 +25,9 @@ class Prior:
         return random.uniform(self.beta[0], self.beta[1])
 
     def sampleCoastBonus(self):
-        return random.uniform(self.coastBonus[0], self.coastBonus[1])
+        return random.uniform(self.harbourBonus[0], self.harbourBonus[1])
 
 def abcPar(q, numCpu, prior, runs, bestRuns, sites, costMatrix):
-#def abcPar(q, numCpu, prior, runs, bestRuns, sitesList, historicalSizes):
     resolution = 1
     results = list()
     logFile = open('log_'+str(numCpu),'w')
@@ -39,7 +38,7 @@ def abcPar(q, numCpu, prior, runs, bestRuns, sites, costMatrix):
 
     for i in range(runs[0],runs[1]):
         experiment = entropy.Experiment(i,prior.sampleWeight(), prior.sampleAlpha(), prior.sampleBeta(), prior.sampleCoastBonus())
-        experiment.distRelevance = entropy.runEntropy(experiment, costMatrix, sites)
+        experiment.distRelevance = entropy.runEntropy(experiment, costMatrix, sites, False)
         if i%resolution== 0:
             logFile = open('log_'+str(numCpu),'a')
             logFile.write('thread: '+str(numCpu)+' time: '+str('%.2f'%(time.time()-initTime))+'s. run: '+str(i-runs[0])+'/'+str(runs[1]-runs[0])+' - '+str(experiment)+'\n')
@@ -62,11 +61,10 @@ def runABC(prior, sites, cost, runs, tolerance):
 
     costMatrix = entropy.loadCosts(cost)
     
-#    historicalSizes = entropy.getSizes(sitesList)
     bestRuns = int(runs*tolerance)
 
-#    numCpus = mp.cpu_count()
-    numCpus = 1
+    numCpus = mp.cpu_count()
+#    numCpus = 1
     runsPerCpu = math.ceil(runs/numCpus)
     bestRunsCpu = math.ceil(runs*tolerance)
 
@@ -79,13 +77,12 @@ def runABC(prior, sites, cost, runs, tolerance):
 
     runs = [0,runsPerCpu]
     for i in range(numCpus):
-#        p = mp.Process(target=abcPar, args=(q,i, prior, runs, bestRunsCpu,sitesList,historicalSizes,))
         p = mp.Process(target=abcPar, args=(q,i, prior, runs, bestRunsCpu,sites, costMatrix))
         p.start()
         print('starting thread:',i,'runs:',runs)
         runs[0] = runs[1]
         runs[1] = runs[0]+runsPerCpu
-        if i==(numCpus-2):
+        if i==(numCpus-1):
             runs[1] =runs 
         procs.append(p)
 
@@ -104,9 +101,9 @@ def storeResults(results, outputFile):
     results = sorted(results, key = lambda experiment : experiment.distRelevance)
     output = open(outputFile, 'w')
 
-    output.write('run;weight;alpha;beta;coastBonus;dist\n')
+    output.write('run;weight;alpha;beta;harbourBonus;dist\n')
     for result in results:
-        output.write(str(result.numRun)+';'+result.weight+';'+str('%.2f')%result.alpha+';'+str('%.2f')%result.beta+';'+str('%.2f')%result.coastBonus+';'+str('%.2f')%result.distRelevance+'\n')
+        output.write(str(result.numRun)+';'+result.weight+';'+str('%.2f')%result.alpha+';'+str('%.2f')%result.beta+';'+str('%.2f')%result.harbourBonus+';'+str('%.2f')%result.distRelevance+'\n')
     output.close()
 
 def runExperiment(priorWeight, priorAlpha, priorBeta, priorCoastBonus, sites, cost, output, runs, tolerance):
@@ -120,12 +117,12 @@ def main():
     parser.add_argument("-s", "--sites", help="sites file", default='../data/cities_weights.csv')
     parser.add_argument("-c", "--cost", help="cost matrix file", default='../data/costMatrix.csv')
     parser.add_argument("-o", "--output", help="CSV file to store output", default='fooabc')
-    parser.add_argument("-r", "--runs", help="number of runs", type=int, default=10)
+    parser.add_argument("-r", "--runs", help="number of runs", type=int, default=1000)
     parser.add_argument("-t", "--tolerance", help="tolerance level", type=float, default=1)
 
     args = parser.parse_args()
 
-    runExperiment(['prom','farming'],[0,2],[0,2],[0,0], args.sites, args.cost, args.output+'.csv', args.runs, args.tolerance)
+    runExperiment(['prom','farming'],[0,2],[0,1],[0,1], args.sites, args.cost, args.output+'.csv', args.runs, args.tolerance)
 
 if __name__ == "__main__":
     main()
