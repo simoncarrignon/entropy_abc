@@ -31,24 +31,23 @@ class Site:
         for siteK in Site.sites:
             codeK = self.ident+'_'+siteK.ident
             totalFlow +=  math.pow(siteK.weight, alpha) * math.exp(-1.0 * beta * Site.cost[codeK])
-        print('total flow from:',self,'is',totalFlow)
+#        print('total flow from:',self,'is',totalFlow)
         # for each site divide value and add to their variation
         flowToGive = 0
         flowToGive2 = 0
         for site in Site.sites:
             code = self.ident+'_'+site.ident
-            flow = math.pow(site.weight, alpha) * math.exp(-1.0 * beta * Site.cost[code])
+            flow = self.flow*math.pow(site.weight, alpha) * math.exp(-1.0 * beta * Site.cost[code])
             flow /= totalFlow
             flowToGive += flow
-            flow *= self.weight
-            print('\tfrom:',self.ident,'to:',site.ident,'with weight:',site.weight,'and dist:',Site.cost[code],'flow:',flow)
+#            print('\tfrom:',self.ident,'to:',site.ident,'with weight:',site.weight,'and dist:',Site.cost[code],'flow:',flow)
             flowToGive2 +=  flow
             site.variation += flow
         # compute total flow
-        print('aggregated flow from:',self,'is var: {0:.5f}'.format(flowToGive),'2: {0:.5f}'.format(flowToGive2))
+#        print('aggregated flow from:',self,'is var: {0:.5f}'.format(flowToGive),'2: {0:.5f}'.format(flowToGive2))
 
     def applyVariation(self, changeRate, harbourBonus):
-#        print('final variation for',self.ident,'is',self.variation)
+#        print('final variation for',self.ident,'is',self.variation,'current weight:',self.weight)
         oldWeight = self.weight
         realDiff = self.variation-oldWeight
 #        if self.isHarbour:
@@ -56,10 +55,10 @@ class Site:
 #        else:
 #            self.variation = self.variation - self.variation*harbourBonus
         # TODO multiply weight by some K before modifying variation?
-        self.weight = self.weight + changeRate*(self.variation - self.weight)
-        print('old:',oldWeight,'new:',self,'size change:',abs(self.weight-oldWeight)/oldWeight,'diff:',realDiff,'variation:',self.variation)
+        self.weight = self.weight + changeRate*(self.variation - oldWeight)
+#        print('old:',oldWeight,'new:',self,'size change:',changeRate*(self.variation - oldWeight),'diff:',realDiff,'variation:',self.variation)
         self.variation = 0
-        return abs(realDiff)/oldWeight
+        return abs(changeRate*(self.variation - oldWeight))
 
     def __str__(self):
         return 'site '+self.ident+' size: '+str(self.size)+' weight: {0:.5f}'.format(self.weight)
@@ -75,7 +74,7 @@ class Experiment:
         self.harbourBonus = harbourBonus
 
         self.delta = 0.01
-        self.changeRate = 0.1
+        self.changeRate = 0.01
         self.sizeFlow = 1.0
 
         self.distRelevance = 0.0
@@ -132,13 +131,19 @@ def loadCosts( distFileName ):
     for dist in csvReader:
         code = dist[0]
         cost = float(dist[1])/(3600.0*24.0)
-        Site.cost[code] = cost
-        # from seconds to days
-#        if cost<1:
-#            Site.cost[code] = 0
-#        else:
-#            Site.cost[code] = math.log(cost)
-#        print(cost,'-',Site.cost[code])
+        if cost<1:
+            Site.cost[code] = 1
+        else:
+            Site.cost[code] = math.log(cost)
+
+def adjustFlow():
+    totalWeights = 0
+    for site in Site.sites:
+        totalWeights += site.weight
+
+    for site in Site.sites:
+        site.flow = len(Site.sites)*site.weight/totalWeights
+#        print('flow from site:',site.ident,'is:',site.flow)
 
 def runEntropy(experiment, costMatrix, sites, storeResults):
     Site.sites = list()
@@ -148,28 +153,25 @@ def runEntropy(experiment, costMatrix, sites, storeResults):
 
     diff = sys.float_info.max
     i = 0
-#    while abs(diff-oldDiff) > experiment.delta:
-    underStoppingRate = 0
-    while underStoppingRate<10:
+    totalWeight = 0
+    for site in Site.sites:
+        totalWeight += site.weight
+
+    for site in Site.sites:
+        site.weight = site.weight*len(Site.sites)/totalWeight 
+        
+    while i<1000: 
+        adjustFlow()
         for site in Site.sites:
             site.computeFlow(experiment.sizeFlow, experiment.alpha, experiment.beta)
         diff = 0
 
         for site in Site.sites:
             diff += site.applyVariation(experiment.changeRate, experiment.harbourBonus)
-
-        totalWeight = 0
-        for site in Site.sites:
-            totalWeight += site.weight
            
-        diff /= len(Site.sites)            
-        if diff<0.001:
-            underStoppingRate += 1
-        else:
-            underStoppingRate = 0
-        print('step:',i,'finished, total weight:',totalWeight,'diff:',diff,'stopping:',underStoppingRate)
-        for site in Site.sites:
-            print(site)
+#        print('step:',i,'finished, total weight:',totalWeight,'diff:',diff)
+#        for site in Site.sites:
+#            print(site)
         i += 1
     print('simulation finished with diff;',diff)
    
@@ -184,7 +186,6 @@ def runEntropy(experiment, costMatrix, sites, storeResults):
     print('results run:',experiment.numRun)
 
 
-    """
     print('#######REAL########')
     for i in range(0,len(Site.relativeSizes[0])):
             print('row:',i)
@@ -199,7 +200,6 @@ def runEntropy(experiment, costMatrix, sites, storeResults):
     for i in range(0,len(Site.relativeSizes[0])):
             print('row:',i)
             print(result[i])
-    """
 
 #    print('\treal:',Site.relativeSizes)
 #    print('\tsim:',relativeWeights)
