@@ -122,7 +122,7 @@ def main():
 
     args = parser.parse_args()
 
-    runExperiment(['prom','farming'],[0,2],[0,1],[0,1], args.sites, args.cost, args.output+'.csv', args.runs, args.tolerance)
+    runExperiment(['prom','farming'],[0,2],[0,2],[0,2], args.sites, args.cost, args.output+'.csv', args.runs, args.tolerance)
 
 if __name__ == "__main__":
     main()

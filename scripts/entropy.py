@@ -58,7 +58,7 @@ class Site:
         self.weight = self.weight + changeRate*(self.variation - oldWeight)
 #        print('old:',oldWeight,'new:',self,'size change:',changeRate*(self.variation - oldWeight),'diff:',realDiff,'variation:',self.variation)
         self.variation = 0
-        return abs(changeRate*(self.variation - oldWeight))
+        return abs(realDiff)/oldWeight
 
     def __str__(self):
         return 'site '+self.ident+' size: '+str(self.size)+' weight: {0:.5f}'.format(self.weight)
@@ -137,13 +137,8 @@ def loadCosts( distFileName ):
             Site.cost[code] = math.log(cost)
 
 def adjustFlow():
-    totalWeights = 0
     for site in Site.sites:
-        totalWeights += site.weight
-
-    for site in Site.sites:
-        site.flow = len(Site.sites)*site.weight/totalWeights
-#        print('flow from site:',site.ident,'is:',site.flow)
+        site.flow = site.weight
 
 def runEntropy(experiment, costMatrix, sites, storeResults):
     Site.sites = list()
@@ -151,7 +146,6 @@ def runEntropy(experiment, costMatrix, sites, storeResults):
 
     print('beginning run with priors', experiment)
 
-    diff = sys.float_info.max
     i = 0
     totalWeight = 0
     for site in Site.sites:
@@ -159,22 +153,32 @@ def runEntropy(experiment, costMatrix, sites, storeResults):
 
     for site in Site.sites:
         site.weight = site.weight*len(Site.sites)/totalWeight 
-        
-    while i<1000: 
+    
+    oldDiff = sys.float_info.max
+    diff = oldDiff
+    relativeWeights = numpy.full((len(Site.sites), len(Site.sites)), 0, dtype=float)
+
+    while diff<=oldDiff:
         adjustFlow()
         for site in Site.sites:
             site.computeFlow(experiment.sizeFlow, experiment.alpha, experiment.beta)
-        diff = 0
 
         for site in Site.sites:
-            diff += site.applyVariation(experiment.changeRate, experiment.harbourBonus)
-           
-#        print('step:',i,'finished, total weight:',totalWeight,'diff:',diff)
-#        for site in Site.sites:
-#            print(site)
+            site.applyVariation(experiment.changeRate, experiment.harbourBonus)
+
+        for z in range(len(Site.sites)):
+            for j in range(z):
+                relativeWeights[z][j] = Site.sites[z].weight/Site.sites[j].weight
+        result = numpy.absolute(Site.relativeSizes-relativeWeights)
+
+        oldDiff = diff
+        diff = result.sum()
+
+#        print('step:',i,'finished, diff:',diff,'old:',oldDiff,'foo')
         i += 1
-    print('simulation finished with diff;',diff)
-   
+    print('simulation finished after:',i,'steps with diff;',diff)
+  
+    """
     relativeWeights = numpy.full((len(Site.sites), len(Site.sites)), 0, dtype=float)
     for i in range(len(Site.sites)):
         for j in range(i):
@@ -184,8 +188,9 @@ def runEntropy(experiment, costMatrix, sites, storeResults):
    
     numpy.set_printoptions(suppress=True, precision=4, threshold=100000)
     print('results run:',experiment.numRun)
+    """
 
-
+    """
     print('#######REAL########')
     for i in range(0,len(Site.relativeSizes[0])):
             print('row:',i)
@@ -200,12 +205,12 @@ def runEntropy(experiment, costMatrix, sites, storeResults):
     for i in range(0,len(Site.relativeSizes[0])):
             print('row:',i)
             print(result[i])
-
+    """
 #    print('\treal:',Site.relativeSizes)
 #    print('\tsim:',relativeWeights)
 #    print('\tresult:',result)
-    print('\tfinal distance:',result.sum())
-    print('end results run:', experiment.numRun)
+#   print('\tfinal distance:',result.sum())
+#   print('end results run:', experiment.numRun)
   
     if(storeResults):
         outputFile = open('output.csv','w')
@@ -214,6 +219,6 @@ def runEntropy(experiment, costMatrix, sites, storeResults):
             outputFile.write(site.ident+';'+str(site.size)+';'+str(site.x)+';'+str(site.y)+';'+'%.2f'%site.weight+'\n')
         outputFile.close()
     
-    return numpy.absolute(result.sum())
+    return diff 
     
 
