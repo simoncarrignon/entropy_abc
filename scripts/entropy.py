@@ -7,7 +7,7 @@ class Site:
 
     sites = list()
     cost = {}
-    weight = 'prom'
+    weightedCost = {}
 
     def __init__(self, ident, size, x, y, weight, isHarbour):
         self.ident = ident
@@ -15,9 +15,8 @@ class Site:
         self.x = int(x)
         self.y = int(y)
         self.weight = weight
-        self.originalWeight = weight
+        self.weightAlpha = 0
         self.variation = 0
-        self.occupations = 0
         self.isHarbour = isHarbour
 
         self.relativeSizes = None
@@ -25,63 +24,53 @@ class Site:
     def __eq__(self, other):
         return self.ident == other.ident
 
-    def computeFlow(self, sizeFlow, alpha, beta):
+    def computeFlow(self):
         # total flow
         totalFlow = 0
         for siteK in Site.sites:
+            if siteK.ident==self.ident:
+                continue
             codeK = self.ident+'_'+siteK.ident
-            totalFlow +=  math.pow(siteK.weight, alpha) * math.exp(-1.0 * beta * Site.cost[codeK])
-#        print('total flow from:',self,'is',totalFlow)
+            totalFlow +=  siteK.weightAlpha * Site.weightedCost[codeK]
         # for each site divide value and add to their variation
         flowToGive = 0
-        flowToGive2 = 0
         for site in Site.sites:
+            if site.ident==self.ident:
+                continue
             code = self.ident+'_'+site.ident
-            flow = self.flow*math.pow(site.weight, alpha) * math.exp(-1.0 * beta * Site.cost[code])
+            flow = self.weight*site.weightAlpha * Site.weightedCost[code]
             flow /= totalFlow
             flowToGive += flow
-#            print('\tfrom:',self.ident,'to:',site.ident,'with weight:',site.weight,'and dist:',Site.cost[code],'flow:',flow)
-            flowToGive2 +=  flow
             site.variation += flow
-        # compute total flow
-#        print('aggregated flow from:',self,'is var: {0:.5f}'.format(flowToGive),'2: {0:.5f}'.format(flowToGive2))
+        return flowToGive            
 
     def applyVariation(self, changeRate, harbourBonus):
-#        print('final variation for',self.ident,'is',self.variation,'current weight:',self.weight)
-        oldWeight = self.weight
-        realDiff = self.variation-oldWeight
-#        if self.isHarbour:
-#            self.variation = self.variation + self.variation*harbourBonus
-#        else:
-#            self.variation = self.variation - self.variation*harbourBonus
-        # TODO multiply weight by some K before modifying variation?
-        self.weight = self.weight + changeRate*(self.variation - oldWeight)
-#        print('old:',oldWeight,'new:',self,'size change:',changeRate*(self.variation - oldWeight),'diff:',realDiff,'variation:',self.variation)
+        realDiff = self.variation-self.weight
+        self.weight = self.weight + changeRate*(self.variation - self.weight)
         self.variation = 0
-        return abs(realDiff)/oldWeight
+        return abs(realDiff)
 
     def __str__(self):
         return 'site '+self.ident+' size: '+str(self.size)+' weight: {0:.5f}'.format(self.weight)
 
 class Experiment:
 
-    def __init__(self, numRun, weight, alpha, beta, harbourBonus):
+    def __init__(self, numRun, weightProm, weightFarming, alpha, beta, harbourBonus):
         self.numRun = numRun
         # priors
-        self.weight = weight
+        # sum of weights must be equal to 1
+        self.weightProm = weightProm/(weightProm+weightFarming)
+        self.weightFarming = weightFarming/(weightProm+weightFarming)
+
         self.alpha = alpha 
         self.beta = beta
         self.harbourBonus = harbourBonus
 
-        self.delta = 0.01
         self.changeRate = 0.01
-        self.sizeFlow = 1.0
-
-        self.distRelevance = 0.0
-        print('weight:',weight,'alpha',alpha,'beta',beta,'coast',harbourBonus)
+        self.distRelevance = 0
 
     def __str__(self):
-        result = 'experiment: '+str(self.numRun)+' with weight: '+str(self.weight)+' alpha: '+str('%.2f')%self.alpha+' beta: '+str('%.2f')%self.beta+' coast bonus: '+str('%.2f')%self.harbourBonus+' distance: '+str('%.2f')%self.distRelevance
+        result = 'experiment: '+str(self.numRun)+' with weightProm: '+str(self.weightProm)+' and weightFarming: '+str(self.weightFarming)+' alpha: '+str('%.2f')%self.alpha+' beta: '+str('%.2f')%self.beta+' coast bonus: '+str('%.2f')%self.harbourBonus+' dist:'+str('%.2f')%self.distRelevance
         return result
 
 def computeRelativeSizes():
@@ -91,27 +80,45 @@ def computeRelativeSizes():
         for j in range(i):
             Site.relativeSizes[i][j] = Site.sites[i].size/Site.sites[j].size
 
-def loadSites( inputFileName, weight, harbourBonus ):
+def loadSites( inputFileName, weightProm, weightFarming, harbourBonus ):
     inputFile = open(inputFileName, 'r')
+    
+    # all prom and farming must be between 1 (best value) and 0 (worst value)
     csvReader = csv.reader(inputFile, delimiter=',')
-
     headerLine = next(csvReader)
 
-    index = 0
-    for column in headerLine:
-        if column==weight:
-            break
-        index += 1
-    if index==len(headerLine):
-        print('error, weight column:',weight,'not found')
-        return
+    minFarming = sys.float_info.max
+    maxFarming = sys.float_info.min
+    minProm = sys.float_info.max
+    maxProm = sys.float_info.min
 
+    for siteLine in csvReader:
+        prom = float(siteLine[5])
+        if prom<minProm:
+            minProm = prom
+        elif prom>maxProm:
+            maxProm = prom
+
+        farming = float(siteLine[6])
+        if farming<minFarming:
+            minFarming = farming
+        elif farming>maxFarming:
+            maxFarming = farming
+
+    inputFile.close()            
+    inputFile = open(inputFileName, 'r')
+
+    csvReader = csv.reader(inputFile, delimiter=',')
+    headerLine = next(csvReader)
     for siteLine in csvReader:
         ident = siteLine[0]
         size = float(siteLine[1])
         x = float(siteLine[3])
         y = float(siteLine[4])
-        weight = float(siteLine[index])
+        prom = (float(siteLine[5])-minProm)/(maxProm-minProm)
+        farming = (float(siteLine[6])-minFarming)/(maxFarming-minFarming)
+        # weights between 101 and 1
+        weight = 1+100*(prom*weightProm+farming*weightFarming)
 
         isHarbour = False
         isHarbourNum = int(siteLine[7])
@@ -122,7 +129,7 @@ def loadSites( inputFileName, weight, harbourBonus ):
 
     computeRelativeSizes()
 
-def loadCosts( distFileName ):
+def loadCosts( distFileName):
     distFile = open(distFileName, 'r')
     csvReader = csv.reader(distFile, delimiter=';')
     # skip header
@@ -131,94 +138,66 @@ def loadCosts( distFileName ):
     for dist in csvReader:
         code = dist[0]
         cost = float(dist[1])/(3600.0*24.0)
-        if cost<1:
-            Site.cost[code] = 1
-        else:
-            Site.cost[code] = math.log(cost)
+        Site.cost[code] = cost
 
-def adjustFlow():
+def computeBetaCosts(beta):
+    for code,cost in Site.cost.items():
+        Site.weightedCost[code] = math.exp(-1.0*beta*cost)
+
+def computeAlphaWeights(alpha):
     for site in Site.sites:
-        site.flow = site.weight
-
+        site.weightAlpha = math.pow(site.weight, alpha)
+    
 def runEntropy(experiment, costMatrix, sites, storeResults):
     Site.sites = list()
-    loadSites(sites, experiment.weight, experiment.harbourBonus)
+    loadSites(sites, experiment.weightProm, experiment.weightFarming, experiment.harbourBonus)
+    computeBetaCosts(experiment.beta)
 
     print('beginning run with priors', experiment)
 
     i = 0
-    totalWeight = 0
-    for site in Site.sites:
-        totalWeight += site.weight
-
-    for site in Site.sites:
-        site.weight = site.weight*len(Site.sites)/totalWeight 
-    
-    oldDiff = sys.float_info.max
-    diff = oldDiff
     relativeWeights = numpy.full((len(Site.sites), len(Site.sites)), 0, dtype=float)
 
-    while diff<=oldDiff:
-        adjustFlow()
+    maxIter = 5000
+    maxIterOut = 100
+    iterOut = 0
+    tolerance = 0.1
+    test = tolerance
+
+    while i<maxIter and iterOut<maxIterOut: 
+        if test>tolerance:
+            iterOut = 0
+        else:
+            iterOut += 1
+
+        computeAlphaWeights(experiment.alpha)            
+
+        aggregatedFlow = 0
         for site in Site.sites:
-            site.computeFlow(experiment.sizeFlow, experiment.alpha, experiment.beta)
-
+            aggregatedFlow += site.computeFlow()
+        aggregatedDiff = 0
         for site in Site.sites:
-            site.applyVariation(experiment.changeRate, experiment.harbourBonus)
+            aggregatedDiff += site.applyVariation(experiment.changeRate, experiment.harbourBonus)
 
-        for z in range(len(Site.sites)):
-            for j in range(z):
-                relativeWeights[z][j] = Site.sites[z].weight/Site.sites[j].weight
-        result = numpy.absolute(Site.relativeSizes-relativeWeights)
+        test = aggregatedDiff/aggregatedFlow
 
-        oldDiff = diff
-        diff = result.sum()
-
-#        print('step:',i,'finished, diff:',diff,'old:',oldDiff,'foo')
+#        print('step:',i,'iter2:',iterOut,'finished, flow:',aggregatedFlow,'diff:',aggregatedDiff,'test:',test)
         i += 1
-    print('simulation finished after:',i,'steps with diff;',diff)
   
-    """
-    relativeWeights = numpy.full((len(Site.sites), len(Site.sites)), 0, dtype=float)
-    for i in range(len(Site.sites)):
-        for j in range(i):
-            relativeWeights[i][j] = Site.sites[i].weight/Site.sites[j].weight
-
+    for z in range(len(Site.sites)):
+        for j in range(z):
+            relativeWeights[z][j] = Site.sites[z].weight/Site.sites[j].weight
+            
     result = numpy.absolute(Site.relativeSizes-relativeWeights)
-   
-    numpy.set_printoptions(suppress=True, precision=4, threshold=100000)
-    print('results run:',experiment.numRun)
-    """
+    diff = result.sum()
+    print('simulation finished after:',i,'steps with distance:',diff)
 
-    """
-    print('#######REAL########')
-    for i in range(0,len(Site.relativeSizes[0])):
-            print('row:',i)
-            print(Site.relativeSizes[i])
-
-    print('#######SIM########')
-    for i in range(0,len(Site.relativeSizes[0])):
-            print('row:',i)
-            print(relativeWeights[i])
- 
-    print('#######RESULT########')
-    for i in range(0,len(Site.relativeSizes[0])):
-            print('row:',i)
-            print(result[i])
-    """
-#    print('\treal:',Site.relativeSizes)
-#    print('\tsim:',relativeWeights)
-#    print('\tresult:',result)
-#   print('\tfinal distance:',result.sum())
-#   print('end results run:', experiment.numRun)
-  
     if(storeResults):
         outputFile = open('output.csv','w')
         outputFile.write('id;size;x;y;weight\n')
         for site in Site.sites:
             outputFile.write(site.ident+';'+str(site.size)+';'+str(site.x)+';'+str(site.y)+';'+'%.2f'%site.weight+'\n')
         outputFile.close()
+ 
+    return diff
     
-    return diff 
-    
-

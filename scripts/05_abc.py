@@ -9,14 +9,20 @@ import math
 import time
 
 class Prior:
-    def __init__(self, weight, alpha, beta, harbourBonus): 
-        self.weight = weight
+    def __init__(self, weightProm, weightFarming, alpha, beta, harbourBonus): 
+        self.weightProm = weightProm
+        self.weightFarming = weightFarming
+
         self.alpha = alpha
         self.beta = beta
+
         self.harbourBonus = harbourBonus
 
-    def sampleWeight(self):
-        return random.choice(self.weight)
+    def sampleWeightProm(self):
+        return random.uniform(self.weightProm[0], self.weightProm[1])
+
+    def sampleWeightFarming(self):
+        return random.uniform(self.weightFarming[0], self.weightFarming[1])
 
     def sampleAlpha(self):
         return random.uniform(self.alpha[0], self.alpha[1])
@@ -37,7 +43,7 @@ def abcPar(q, numCpu, prior, runs, bestRuns, sites, costMatrix):
     initTime = time.time()
 
     for i in range(runs[0],runs[1]):
-        experiment = entropy.Experiment(i,prior.sampleWeight(), prior.sampleAlpha(), prior.sampleBeta(), prior.sampleCoastBonus())
+        experiment = entropy.Experiment(i,prior.sampleWeightProm(), prior.sampleWeightFarming(), prior.sampleAlpha(), prior.sampleBeta(), prior.sampleCoastBonus())
         experiment.distRelevance = entropy.runEntropy(experiment, costMatrix, sites, False)
         if i%resolution== 0:
             logFile = open('log_'+str(numCpu),'a')
@@ -101,13 +107,13 @@ def storeResults(results, outputFile):
     results = sorted(results, key = lambda experiment : experiment.distRelevance)
     output = open(outputFile, 'w')
 
-    output.write('run;weight;alpha;beta;harbourBonus;dist\n')
+    output.write('run;weightProm;weightFarming;alpha;beta;harbourBonus;dist\n')
     for result in results:
-        output.write(str(result.numRun)+';'+result.weight+';'+str('%.2f')%result.alpha+';'+str('%.2f')%result.beta+';'+str('%.2f')%result.harbourBonus+';'+str('%.2f')%result.distRelevance+'\n')
+        output.write(str(result.numRun)+';'+str('%.2f')%result.weightProm+';'+str('%.2f')%result.weightFarming+';'+str('%.2f')%result.alpha+';'+str('%.2f')%result.beta+';'+str('%.2f')%result.harbourBonus+';'+str('%.2f')%result.distRelevance+'\n')
     output.close()
 
-def runExperiment(priorWeight, priorAlpha, priorBeta, priorCoastBonus, sites, cost, output, runs, tolerance):
-    prior = Prior(priorWeight, priorAlpha, priorBeta, priorCoastBonus)
+def runExperiment(priorWeightProm, priorWeightFarming, priorAlpha, priorBeta, priorCoastBonus, sites, cost, output, runs, tolerance):
+    prior = Prior(priorWeightProm, priorWeightFarming, priorAlpha, priorBeta, priorCoastBonus)
     results = runABC(prior, sites, cost, runs, tolerance)
     storeResults(results,output)
 
@@ -122,7 +128,7 @@ def main():
 
     args = parser.parse_args()
 
-    runExperiment(['prom','farming'],[0,2],[0,2],[0,2], args.sites, args.cost, args.output+'.csv', args.runs, args.tolerance)
+    runExperiment([0,1],[0,1],[0,2],[0,2],[0,2], args.sites, args.cost, args.output+'.csv', args.runs, args.tolerance)
 
 if __name__ == "__main__":
     main()

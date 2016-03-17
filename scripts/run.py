@@ -5,14 +5,15 @@ import numpy
 
 def singleRun():
 
-    weight = 'prom'
-    alpha = 1.49
-    beta = 0.01
+    weightProm = 0.1
+    weightFarming = 0.9
+    alpha = 1.05
+    beta = 0.2
     harbourBonus = 1.9
     cost = entropy.loadCosts('../data/costMatrix.csv')
     sites = '../data/cities_weights.csv'
 
-    experiment = entropy.Experiment(0,weight,alpha,beta,harbourBonus)
+    experiment = entropy.Experiment(0,weightProm,weightFarming,alpha,beta,harbourBonus)
     entropy.runEntropy(experiment, cost, sites, True)
  
     relativeWeights = numpy.full((len(entropy.Site.sites), len(entropy.Site.sites)), 0, dtype=float)
