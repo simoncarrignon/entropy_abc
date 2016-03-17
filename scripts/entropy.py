@@ -67,10 +67,10 @@ class Experiment:
         self.harbourBonus = harbourBonus
 
         self.changeRate = 0.01
-        self.distRelevance = 0
+        self.distance = sys.float_info.max
 
     def __str__(self):
-        result = 'experiment: '+str(self.numRun)+' with weightProm: '+str(self.weightProm)+' and weightFarming: '+str(self.weightFarming)+' alpha: '+str('%.2f')%self.alpha+' beta: '+str('%.2f')%self.beta+' coast bonus: '+str('%.2f')%self.harbourBonus+' dist:'+str('%.2f')%self.distRelevance
+        result = 'experiment: '+str(self.numRun)+' with weightProm: '+str(self.weightProm)+' and weightFarming: '+str(self.weightFarming)+' alpha: '+str('%.2f')%self.alpha+' beta: '+str('%.2f')%self.beta+' coast bonus: '+str('%.2f')%self.harbourBonus+' dist:'+str('%.2f')%self.distance
         return result
 
 def computeRelativeSizes():

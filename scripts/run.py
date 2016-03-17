@@ -5,11 +5,11 @@ import numpy
 
 def singleRun():
 
-    weightProm = 0.1
-    weightFarming = 0.9
-    alpha = 1.05
-    beta = 0.2
-    harbourBonus = 1.9
+    weightProm = 0.35
+    weightFarming = 0.65
+    alpha = 1.15
+    beta = 0.94
+    harbourBonus = 1.43
     cost = entropy.loadCosts('../data/costMatrix.csv')
     sites = '../data/cities_weights.csv'
 

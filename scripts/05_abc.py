@@ -30,7 +30,7 @@ class Prior:
     def sampleBeta(self):
         return random.uniform(self.beta[0], self.beta[1])
 
-    def sampleCoastBonus(self):
+    def sampleHarbourBonus(self):
         return random.uniform(self.harbourBonus[0], self.harbourBonus[1])
 
 def abcPar(q, numCpu, prior, runs, bestRuns, sites, costMatrix):
@@ -43,8 +43,8 @@ def abcPar(q, numCpu, prior, runs, bestRuns, sites, costMatrix):
     initTime = time.time()
 
     for i in range(runs[0],runs[1]):
-        experiment = entropy.Experiment(i,prior.sampleWeightProm(), prior.sampleWeightFarming(), prior.sampleAlpha(), prior.sampleBeta(), prior.sampleCoastBonus())
-        experiment.distRelevance = entropy.runEntropy(experiment, costMatrix, sites, False)
+        experiment = entropy.Experiment(i,prior.sampleWeightProm(), prior.sampleWeightFarming(), prior.sampleAlpha(), prior.sampleBeta(), prior.sampleHarbourBonus())
+        experiment.distance = entropy.runEntropy(experiment, costMatrix, sites, False)
         if i%resolution== 0:
             logFile = open('log_'+str(numCpu),'a')
             logFile.write('thread: '+str(numCpu)+' time: '+str('%.2f'%(time.time()-initTime))+'s. run: '+str(i-runs[0])+'/'+str(runs[1]-runs[0])+' - '+str(experiment)+'\n')
@@ -53,14 +53,14 @@ def abcPar(q, numCpu, prior, runs, bestRuns, sites, costMatrix):
         # if results list not full
         if len(results)<bestRuns:
             results.append(experiment)
-            results = sorted(results, key = lambda experiment : experiment.distRelevance)
+            results = sorted(results, key = lambda experiment : experiment.distance)
             continue
         # if dist < worse result then change and sort again
-        if result.distRelevance < results[-1].distRelevance:
+        if result.distance < results[-1].distance:
             results[-1] = result
-            results = sorted(results, key = lambda experiment : experiment.distRelevance)
+            results = sorted(results, key = lambda experiment : experiment.distance)
 
-    results = sorted(results, key = lambda experiment : experiment.distRelevance)
+    results = sorted(results, key = lambda experiment : experiment.distance)
     q.put(results)
 
 def runABC(prior, sites, cost, runs, tolerance):
@@ -104,12 +104,12 @@ def runABC(prior, sites, cost, runs, tolerance):
 
 def storeResults(results, outputFile):
     # reorder results for each thread
-    results = sorted(results, key = lambda experiment : experiment.distRelevance)
+    results = sorted(results, key = lambda experiment : experiment.distance)
     output = open(outputFile, 'w')
 
     output.write('run;weightProm;weightFarming;alpha;beta;harbourBonus;dist\n')
     for result in results:
-        output.write(str(result.numRun)+';'+str('%.2f')%result.weightProm+';'+str('%.2f')%result.weightFarming+';'+str('%.2f')%result.alpha+';'+str('%.2f')%result.beta+';'+str('%.2f')%result.harbourBonus+';'+str('%.2f')%result.distRelevance+'\n')
+        output.write(str(result.numRun)+';'+str('%.2f')%result.weightProm+';'+str('%.2f')%result.weightFarming+';'+str('%.2f')%result.alpha+';'+str('%.2f')%result.beta+';'+str('%.2f')%result.harbourBonus+';'+str('%.2f')%result.distance+'\n')
     output.close()
 
 def runExperiment(priorWeightProm, priorWeightFarming, priorAlpha, priorBeta, priorCoastBonus, sites, cost, output, runs, tolerance):
