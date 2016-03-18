@@ -6,6 +6,7 @@ import numpy
 class Site:
 
     sites = list()
+    largestSites = list()
     cost = {}
     weightedCost = {}
 
@@ -18,8 +19,6 @@ class Site:
         self.weightAlpha = 0
         self.variation = 0
         self.isHarbour = isHarbour
-
-        self.relativeSizes = None
 
     def __eq__(self, other):
         return self.ident == other.ident
@@ -73,12 +72,18 @@ class Experiment:
         result = 'experiment: '+str(self.numRun)+' with weightProm: '+str(self.weightProm)+' and weightFarming: '+str(self.weightFarming)+' alpha: '+str('%.2f')%self.alpha+' beta: '+str('%.2f')%self.beta+' coast bonus: '+str('%.2f')%self.harbourBonus+' dist:'+str('%.2f')%self.distance
         return result
 
-def computeRelativeSizes():
-    Site.relativeSizes = numpy.full((len(Site.sites), len(Site.sites)), 0, dtype=float)
+        
+def identifyLargestSites( numTopSites ):
+    Site.largestSites = sorted(Site.sites, key=lambda x: x.size, reverse=True)[:numTopSites]
 
-    for i in range(len(Site.sites)):
-        for j in range(i):
-            Site.relativeSizes[i][j] = Site.sites[i].size/Site.sites[j].size
+def countNumLargestSites():
+    count = 0
+    numTopSites = len(Site.largestSites)
+    largestWeights = sorted(Site.sites, key=lambda x: x.weight, reverse=True)[:numTopSites]
+    for site in largestWeights:
+        if site in Site.largestSites:
+            count += 1
+    return count
 
 def loadSites( inputFileName, weightProm, weightFarming, harbourBonus ):
     inputFile = open(inputFileName, 'r')
@@ -127,7 +132,8 @@ def loadSites( inputFileName, weightProm, weightFarming, harbourBonus ):
             weight += harbourBonus*weight
         Site.sites.append(Site(ident, size, x, y, weight, isHarbour))
 
-    computeRelativeSizes()
+#    computeRelativeSizes()
+    identifyLargestSites(25)
 
 def loadCosts( distFileName):
     distFile = open(distFileName, 'r')
@@ -156,7 +162,6 @@ def runEntropy(experiment, costMatrix, sites, storeResults):
     print('beginning run with priors', experiment)
 
     i = 0
-    relativeWeights = numpy.full((len(Site.sites), len(Site.sites)), 0, dtype=float)
 
     maxIter = 5000
     maxIterOut = 100
@@ -184,13 +189,9 @@ def runEntropy(experiment, costMatrix, sites, storeResults):
 #        print('step:',i,'iter2:',iterOut,'finished, flow:',aggregatedFlow,'diff:',aggregatedDiff,'test:',test)
         i += 1
   
-    for z in range(len(Site.sites)):
-        for j in range(z):
-            relativeWeights[z][j] = Site.sites[z].weight/Site.sites[j].weight
-            
-    result = numpy.absolute(Site.relativeSizes-relativeWeights)
-    diff = result.sum()
-    print('simulation finished after:',i,'steps with distance:',diff)
+    result = 1-countNumLargestSites()/len(Site.largestSites)
+
+    print('simulation finished after:',i,'steps with result:',result)
 
     if(storeResults):
         outputFile = open('output.csv','w')
@@ -199,5 +200,5 @@ def runEntropy(experiment, costMatrix, sites, storeResults):
             outputFile.write(site.ident+';'+str(site.size)+';'+str(site.x)+';'+str(site.y)+';'+'%.2f'%site.weight+'\n')
         outputFile.close()
  
-    return diff
+    return result 
     
