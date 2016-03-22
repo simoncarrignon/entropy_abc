@@ -53,13 +53,12 @@ class Site:
         return 'site '+self.ident+' size: '+str(self.size)+' weight: {0:.5f}'.format(self.weight)
 
 class Experiment:
-
-    def __init__(self, numRun, weightProm, weightFarming, alpha, beta, harbourBonus):
+    def __init__(self, numRun, weightProm, alpha, beta, harbourBonus):
         self.numRun = numRun
         # priors
         # sum of weights must be equal to 1
-        self.weightProm = weightProm/(weightProm+weightFarming)
-        self.weightFarming = weightFarming/(weightProm+weightFarming)
+        self.weightProm = weightProm
+        self.weightFarming = 1.0-self.weightProm
 
         self.alpha = alpha 
         self.beta = beta
@@ -69,10 +68,15 @@ class Experiment:
         self.distance = sys.float_info.max
 
     def __str__(self):
-        result = 'experiment: '+str(self.numRun)+' with weightProm: '+str(self.weightProm)+' and weightFarming: '+str(self.weightFarming)+' alpha: '+str('%.2f')%self.alpha+' beta: '+str('%.2f')%self.beta+' coast bonus: '+str('%.2f')%self.harbourBonus+' dist:'+str('%.2f')%self.distance
+        result = 'experiment: '+str(self.numRun)+' with weightProm: '+str('%.2f')%self.weightProm+' and weightFarming: '+str('%.2f')%self.weightFarming+' alpha: '+str('%.2f')%self.alpha+' beta: '+str('%.2f')%self.beta+' coast bonus: '+str('%.2f')%self.harbourBonus+' dist:'+str('%.3f')%self.distance
         return result
 
-        
+    
+def identifyTopSites( sites, numTopSites):
+    if sites[0].weight == -1:
+        return sorted(sites, key=lambda x: x.size, reverse=True)[:numTopSites]
+    return sorted(sites, key=lambda x: x.weight, reverse=True)[:numTopSites]
+
 def identifyLargestSites( numTopSites ):
     Site.largestSites = sorted(Site.sites, key=lambda x: x.size, reverse=True)[:numTopSites]
 
@@ -85,6 +89,25 @@ def countNumLargestSites():
             count += 1
     return count
 
+
+def loadHistoricalSites( inputFileName ):
+    sites = list()
+    inputFile = open(inputFileName, 'r')
+    
+    csvReader = csv.reader(inputFile, delimiter=',')
+    headerLine = next(csvReader)
+
+    for siteLine in csvReader:
+        ident = siteLine[0]
+        size = float(siteLine[1])
+        x = float(siteLine[3])
+        y = float(siteLine[4])
+        sites.append(Site(ident, size, x, y, -1, False))
+    return sites    
+
+
+    
+    
 def loadSites( inputFileName, weightProm, weightFarming, harbourBonus ):
     inputFile = open(inputFileName, 'r')
     
@@ -122,8 +145,10 @@ def loadSites( inputFileName, weightProm, weightFarming, harbourBonus ):
         y = float(siteLine[4])
         prom = (float(siteLine[5])-minProm)/(maxProm-minProm)
         farming = (float(siteLine[6])-minFarming)/(maxFarming-minFarming)
-        # weights between 101 and 1
-        weight = 1+100*(prom*weightProm+farming*weightFarming)
+        baseWeight = 100*(prom*weightProm+farming*weightFarming)
+        weight = -1
+        while weight <= 0:
+            weight = random.normalvariate(baseWeight, baseWeight/4)
 
         isHarbour = False
         isHarbourNum = int(siteLine[7])
@@ -157,9 +182,16 @@ def computeAlphaWeights(alpha):
 def runEntropy(experiment, costMatrix, sites, storeResults):
     Site.sites = list()
     loadSites(sites, experiment.weightProm, experiment.weightFarming, experiment.harbourBonus)
+
+    # if any value is negative in particle then return max dist
+    if experiment.weightProm<0 or experiment.weightProm>1 or experiment.alpha < 0 or experiment.beta < 0 or experiment.harbourBonus < 0:
+        for site in Site.sites:
+            site.weight = 0
+        return Site.sites
+
     computeBetaCosts(experiment.beta)
 
-    print('beginning run with priors', experiment)
+#    print('beginning run with priors', experiment)
 
     i = 0
 
@@ -200,5 +232,5 @@ def runEntropy(experiment, costMatrix, sites, storeResults):
             outputFile.write(site.ident+';'+str(site.size)+';'+str(site.x)+';'+str(site.y)+';'+'%.2f'%site.weight+'\n')
         outputFile.close()
  
-    return result 
+    return Site.sites 
     
