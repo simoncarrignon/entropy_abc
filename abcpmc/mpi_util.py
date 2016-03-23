@@ -30,8 +30,7 @@ class MpiPool(object):
     def map(self, function, sequence):
         (rank,size) = (MPI.COMM_WORLD.Get_rank(),MPI.COMM_WORLD.Get_size())
         sequence = mpiBCast(sequence)
-        mergedList = _mergeList(MPI.COMM_WORLD.allgather(
-                                                  self.mapFunction(function, _splitList(sequence,size)[rank])))
+        mergedList = _mergeList(MPI.COMM_WORLD.allgather(list(self.mapFunction(function, _splitList(sequence,size)[rank]))))
         return mergedList
     
     def isMaster(self):

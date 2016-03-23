@@ -104,8 +104,8 @@ class ParticleProposal(object):
         while True:
             logFile = open('particle_'+str(i)+'_eps_'+str('%.2f')%self.eps+'.txt', 'a')
             logFile.write('starting selection between '+str(self.N)+' particles\n')
-            for i in range(len(self.pool.ws)):
-                logFile.write('particle: '+str(i)+' thetas: '+str(self.pool.thetas[i])+' have weight: '+str(self.pool.ws[i])+'\n')
+            for j in range(len(self.pool.ws)):
+                logFile.write('particle: '+str(j)+' thetas: '+str(self.pool.thetas[j])+' have weight: '+str(self.pool.ws[j])+'\n')
             idx = self._random.choice(range(self.N), 1, p= self.pool.ws/np.sum(self.pool.ws))[0]
             theta = self.pool.thetas[idx]
             logFile.write('idx chosen: '+str(idx)+' with thetas: '+str(theta)+'\n')

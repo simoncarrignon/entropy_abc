@@ -2,6 +2,8 @@
 
 import sampler
 import threshold
+import mpi_util
+
 import numpy as np
 import entropy 
 import os
@@ -88,9 +90,11 @@ def postfn(params):
 sites = '../data/cities_weights.csv'
 data = entropy.loadHistoricalSites(sites)
 
-eps = threshold.LinearEps(3, 0.4, 0.2)
-priors = sampler.TophatPrior([0,0,0,0], [1,2,2,2])
-sampler = sampler.Sampler(N=3, Y=data, postfn=postfn, dist=distRelative, threads=1)
+eps = threshold.LinearEps(10, 0.4, 0.1)
+priors = sampler.TophatPrior([0,0,0,0], [1,20,20,20])
+    
+mpi_pool = mpi_util.MpiPool()
+sampler = sampler.Sampler(N=100, Y=data, postfn=postfn, dist=distRelative, pool=mpi_pool)
 
 for pool in sampler.sample(priors, eps):
     logFile = open('general_'+str(os.getpid())+'.txt', 'a')
