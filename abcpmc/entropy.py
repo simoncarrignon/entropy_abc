@@ -71,7 +71,7 @@ class Experiment:
         result = 'experiment: '+str(self.numRun)+' with weightProm: '+str('%.2f')%self.weightProm+' and weightFarming: '+str('%.2f')%self.weightFarming+' alpha: '+str('%.2f')%self.alpha+' beta: '+str('%.2f')%self.beta+' coast bonus: '+str('%.2f')%self.harbourBonus+' dist:'+str('%.3f')%self.distance
         return result
 
-    
+"""    
 def identifyTopSites( sites, numTopSites):
     if sites[0].weight == -1:
         return sorted(sites, key=lambda x: x.size, reverse=True)[:numTopSites]
@@ -79,6 +79,7 @@ def identifyTopSites( sites, numTopSites):
 
 def identifyLargestSites( numTopSites ):
     Site.largestSites = sorted(Site.sites, key=lambda x: x.size, reverse=True)[:numTopSites]
+
 
 def countNumLargestSites():
     count = 0
@@ -88,7 +89,7 @@ def countNumLargestSites():
         if site in Site.largestSites:
             count += 1
     return count
-
+"""
 
 def loadHistoricalSites( inputFileName ):
     sites = list()
@@ -158,7 +159,7 @@ def loadSites( inputFileName, weightProm, weightFarming, harbourBonus ):
         Site.sites.append(Site(ident, size, x, y, weight, isHarbour))
 
 #    computeRelativeSizes()
-    identifyLargestSites(25)
+#    identifyLargestSites(25)
 
 def loadCosts( distFileName):
     distFile = open(distFileName, 'r')
@@ -185,8 +186,9 @@ def runEntropy(experiment, costMatrix, sites, storeResults):
 
     # if any value is negative in particle then return max dist
     if experiment.weightProm<0 or experiment.weightProm>1 or experiment.alpha < 0 or experiment.beta < 0 or experiment.harbourBonus < 0:
+        print('returning 1 because:',experiment.weightProm,experiment.alpha, experiment.beta, experiment.harbourBonus)
         for site in Site.sites:
-            site.weight = 0
+            site.weight = -1
         return Site.sites
 
     computeBetaCosts(experiment.beta)
@@ -221,9 +223,9 @@ def runEntropy(experiment, costMatrix, sites, storeResults):
 #        print('step:',i,'iter2:',iterOut,'finished, flow:',aggregatedFlow,'diff:',aggregatedDiff,'test:',test)
         i += 1
   
-    result = 1-countNumLargestSites()/len(Site.largestSites)
+#    result = 1-countNumLargestSites()/len(Site.largestSites)
 
-    print('simulation finished after:',i,'steps with result:',result)
+    print('simulation finished after:',i,'steps') # with result:',result)
 
     if(storeResults):
         outputFile = open('output.csv','w')
