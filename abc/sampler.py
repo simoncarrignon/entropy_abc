@@ -98,7 +98,7 @@ class ParticleProposal(object):
         cnt = 1
         # setting seed to prevent problem with multiprocessing
         self._random.seed(i)  
-        logFile = open('particle_'+str(i)+'_eps_'+str('%.2f')%self.eps+'.txt', 'w')
+        logFile = open('particle_'+str(i)+'_eps_'+str('%.2f')%self.eps+'.txt', 'a')
         logFile.write('starting sample\n')
         logFile.close()
         while True:
@@ -114,6 +114,9 @@ class ParticleProposal(object):
             sigma = self._get_sigma(theta, **self.kwargs)
             sigma = np.atleast_2d(sigma)
             thetap = self._random.multivariate_normal(theta, sigma)
+            while (thetap<0).any():
+                thetap = self._random.multivariate_normal(theta, sigma)
+                    
             logFile = open('particle_'+str(i)+'_eps_'+str('%.2f')%self.eps+'.txt', 'a')
             logFile.write('\texecuting run with new thetap:'+str(thetap)+'\n')
             logFile.close()
@@ -187,7 +190,7 @@ class Sampler(object):
     :param pool: (optional) a pool instance which has a <map> function 
     """
     
-    particle_proposal_cls = ParticleProposal
+    particle_proposal_cls = OLCMParticleProposal
     particle_proposal_kwargs = {}
     
     def __init__(self, N, Y, postfn, dist, threads=1, pool=None):

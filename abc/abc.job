@@ -1,0 +1,11 @@
+#!/bin/bash
+# BSUB -n 64
+# BSUB -R "span[ptile=1]"
+# BSUB -oo abc_%J.out
+# BSUB -eo abc_%J.err
+# BSUB -J abc 
+# BSUB -x
+# BSUB -W 1:00
+
+/gpfs/apps/MN3/PYTHON/3.3.2/bin/python3 05_abc.py
+
