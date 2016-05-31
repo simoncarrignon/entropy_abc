@@ -19,15 +19,12 @@ def postfn(params):
 sites = '../data/cities_weights.csv'
 data = entropy.loadHistoricalSites(sites)
 
-eps = threshold.LinearEps(20, 220, 150)
-
+eps = threshold.LinearEps(15, 200, 150)
 priors = sampler.TophatPrior([0,0,0],[2,2,10])
-sampler = sampler.Sampler(N=25, Y=data, postfn=postfn, dist=entropy.distRelative, threads=8)
+
+sampler = sampler.Sampler(N=200, Y=data, postfn=postfn, dist=entropy.distRelative, threads=16)
 
 for pool in sampler.sample(priors, eps):
-    logFile = open('general_'+str(os.getpid())+'.txt', 'a')
-    logFile.write('starting eps: '+str(pool.eps)+'\n')
-    logFile.close()
     print("T: {0}, eps: {1:>.4f}, ratio: {2:>.4f}".format(pool.t, pool.eps, pool.ratio))
     for i, (mean, std) in enumerate(zip(np.mean(pool.thetas, axis=0), np.std(pool.thetas, axis=0))):
         print(u"    theta[{0}]: {1:>.4f} \u00B1 {2:>.4f}".format(i, mean,std))

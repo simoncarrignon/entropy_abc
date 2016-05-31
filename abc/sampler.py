@@ -26,6 +26,7 @@ import numpy as np
 from scipy import stats
 from scipy import spatial
 import os
+import entropy
 
 __all__ = ["GaussianPrior", 
            "TophatPrior", 
@@ -98,18 +99,18 @@ class ParticleProposal(object):
         cnt = 1
         # setting seed to prevent problem with multiprocessing
         self._random.seed(i)  
-        logFile = open('particle_'+str(i)+'_eps_'+str('%.2f')%self.eps+'.txt', 'a')
-        logFile.write('starting sample\n')
-        logFile.close()
+#        logFile = open('particle_'+str(i)+'_eps_'+str('%.2f')%self.eps+'.txt', 'a')
+#        logFile.write('starting sample\n')
+#        logFile.close()
         while True:
-            logFile = open('particle_'+str(i)+'_eps_'+str('%.2f')%self.eps+'.txt', 'a')
-            logFile.write('starting selection between '+str(self.N)+' particles\n')
-            for j in range(len(self.pool.ws)):
-                logFile.write('particle: '+str(j)+' thetas: '+str(self.pool.thetas[j])+' have weight: '+str(self.pool.ws[j])+'\n')
+#            logFile = open('particle_'+str(i)+'_eps_'+str('%.2f')%self.eps+'.txt', 'a')
+#            logFile.write('starting selection between '+str(self.N)+' particles\n')
+#            for j in range(len(self.pool.ws)):
+#                logFile.write('particle: '+str(j)+' thetas: '+str(self.pool.thetas[j])+' have weight: '+str(self.pool.ws[j])+'\n')
             idx = self._random.choice(range(self.N), 1, p= self.pool.ws/np.sum(self.pool.ws))[0]
             theta = self.pool.thetas[idx]
-            logFile.write('idx chosen: '+str(idx)+' with thetas: '+str(theta)+'\n')
-            logFile.close()
+#            logFile.write('idx chosen: '+str(idx)+' with thetas: '+str(theta)+'\n')
+#            logFile.close()
 
             sigma = self._get_sigma(theta, **self.kwargs)
             sigma = np.atleast_2d(sigma)
@@ -117,22 +118,25 @@ class ParticleProposal(object):
             while (thetap<0).any():
                 thetap = self._random.multivariate_normal(theta, sigma)
                     
-            logFile = open('particle_'+str(i)+'_eps_'+str('%.2f')%self.eps+'.txt', 'a')
-            logFile.write('\texecuting run with new thetap:'+str(thetap)+'\n')
-            logFile.close()
+#            logFile = open('particle_'+str(i)+'_eps_'+str('%.2f')%self.eps+'.txt', 'a')
+#            logFile.write('\texecuting run with new thetap:'+str(thetap)+'\n')
+#            logFile.close()
 
             X = self.postfn(thetap)
             p = np.asarray(self.distfn(X, self.Y))
             
             if np.all(p <= self.eps):
                 logFile = open('particle_'+str(i)+'_eps_'+str('%.2f')%self.eps+'.txt', 'a')
-                logFile.write('\tok! i:'+str(i)+' - eps: '+str('%.2f')%self.eps+' - thetas: '+str(thetap)+' - dist: '+str(p)+'\n')
+                logFile.write('ok! i:'+str(i)+' - eps: '+str('%.2f')%self.eps+' - thetas: '+str(thetap)+' - dist: '+str(p)+'\n')
+                initialWeights = [site.initialWeight for site in X]
+                logFile.write('initial weights: '+str(initialWeights)+'\n')
+                logFile.write('prevSims:'+str(cnt)+'\n')
                 logFile.close()
                 break
 
-            logFile = open('particle_'+str(i)+'_eps_'+str('%.2f')%self.eps+'.txt', 'a')
-            logFile.write('\tfailed. i:'+str(i)+' - eps: '+str('%.2f')%self.eps+' - thetas: '+str(thetap)+' - dist: '+str(p)+'\n')
-            logFile.close()
+#            logFile = open('particle_'+str(i)+'_eps_'+str('%.2f')%self.eps+'.txt', 'a')
+#            logFile.write('\tfailed. i:'+str(i)+' - eps: '+str('%.2f')%self.eps+' - thetas: '+str(thetap)+' - dist: '+str(p)+'\n')
+#            logFile.close()
             cnt+=1
         return thetap, p, cnt
 

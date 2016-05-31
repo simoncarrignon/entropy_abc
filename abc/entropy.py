@@ -53,6 +53,7 @@ class Site:
         self.size = size
         self.x = int(x)
         self.y = int(y)
+        self.initialWeight = weight
         self.weight = weight
         self.weightAlpha = 0
         self.variation = 0
@@ -178,7 +179,7 @@ def computeBetaCosts(beta):
 def computeAlphaWeights(alpha):
     for site in Site.sites:
         site.weightAlpha = math.pow(site.weight, alpha)
-    
+
 def runEntropy(experiment, sites, storeResults):
     Site.sites = list()
     loadSites(sites, experiment.harbourBonus)
@@ -191,8 +192,6 @@ def runEntropy(experiment, sites, storeResults):
         return Site.sites
 
     computeBetaCosts(experiment.beta)
-
-#    print('beginning run with priors', experiment)
 
     i = 0
 
@@ -218,13 +217,10 @@ def runEntropy(experiment, sites, storeResults):
             aggregatedDiff += site.applyVariation(experiment.changeRate)
 
         test = aggregatedDiff/aggregatedFlow
-
 #        print('step:',i,'iter2:',iterOut,'finished, flow:',aggregatedFlow,'diff:',aggregatedDiff,'test:',test)
         i += 1
   
-#    result = 1-countNumLargestSites()/len(Site.largestSites)
-
-    print('simulation finished after:',i,'steps') # with result:',result)
+#    print('simulation finished after:',i,'steps')
 
     if(storeResults):
         outputFile = open('output.csv','w')

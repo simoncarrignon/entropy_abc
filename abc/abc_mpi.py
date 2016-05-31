@@ -21,11 +21,11 @@ def postfn(params):
 sites = '../data/cities_weights.csv'
 data = entropy.loadHistoricalSites(sites)
 
-eps = threshold.LinearEps(20, 220, 150)
+eps = threshold.LinearEps(15, 200, 150)
 priors = sampler.TophatPrior([0,0,0],[2,2,10])
 
 mpi_pool = mpi_util.MpiPool()
-sampler = sampler.Sampler(N=100, Y=data, postfn=postfn, dist=entropy.distRelative, pool=mpi_pool)
+sampler = sampler.Sampler(N=200, Y=data, postfn=postfn, dist=entropy.distRelative, pool=mpi_pool)
 
 for pool in sampler.sample(priors, eps):
     logFile = open('general_'+str(os.getpid())+'.txt', 'a')
