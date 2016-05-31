@@ -12,15 +12,24 @@ def postfn(params):
     entropy.loadCosts('../data/costMatrixSea.csv')
     sites = '../data/cities_weights.csv'
 
-    experiment = entropy.Experiment(0, params[0], params[1], params[2])
+    experiment = entropy.Experiment(0, params[0], params[1], 0, params[2:])
     simSites = entropy.runEntropy(experiment, sites, False)
     return simSites
 
 sites = '../data/cities_weights.csv'
 data = entropy.loadHistoricalSites(sites)
 
-eps = threshold.LinearEps(15, 200, 150)
-priors = sampler.TophatPrior([0,0,0],[2,2,10])
+eps = threshold.LinearEps(15, 400, 150)
+
+# alpha, beta, and the list of weights
+numParams = 2+len(data)
+leftBounds = np.zeros(numParams)
+rightBounds = np.full(numParams, 100)
+# alpha and beta are not 0-100 but 0-2
+rightBounds[0] = 2
+rightBounds[1] = 2
+
+priors = sampler.TophatPrior(leftBounds, rightBounds)
 
 sampler = sampler.Sampler(N=200, Y=data, postfn=postfn, dist=entropy.distRelative, threads=16)
 

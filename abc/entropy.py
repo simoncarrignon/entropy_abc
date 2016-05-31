@@ -92,13 +92,14 @@ class Site:
         return 'site '+self.ident+' size: '+str(self.size)+' weight: {0:.5f}'.format(self.weight)
 
 class Experiment:
-    def __init__(self, numRun, alpha, beta, harbourBonus):
+    def __init__(self, numRun, alpha, beta, harbourBonus, weights=None):
         self.numRun = numRun
         # priors
 
         self.alpha = alpha
         self.beta = beta
         self.harbourBonus = harbourBonus
+        self.weights = weights
 
         self.changeRate = 0.1
 
@@ -127,7 +128,7 @@ def loadHistoricalSites( inputFileName ):
         sites.append(Site(ident, size, x, y, -1, isHarbour))
     return sites    
     
-def loadSites( inputFileName, harbourBonus):
+def loadSites( inputFileName, harbourBonus, weights):
     inputFile = open(inputFileName, 'r')
     
     # all prom and farming must be between 1 (best value) and 0 (worst value)
@@ -140,7 +141,12 @@ def loadSites( inputFileName, harbourBonus):
         size = float(siteLine[1])
         x = float(siteLine[3])
         y = float(siteLine[4])
-        weight = random.randint(1,100)
+
+        # if no predefined weights then random sample from 1-100
+        if weights is None:
+            weight = random.randint(1,100)
+        else:
+            weight = weights[i]
         i += 1
 
         isHarbour = False
@@ -182,7 +188,7 @@ def computeAlphaWeights(alpha):
 
 def runEntropy(experiment, sites, storeResults):
     Site.sites = list()
-    loadSites(sites, experiment.harbourBonus)
+    loadSites(sites, experiment.harbourBonus, experiment.weights)
 
     # if any value is negative in particle then return max dist
     if experiment.alpha < 0 or experiment.beta < 0:
