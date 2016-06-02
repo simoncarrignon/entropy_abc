@@ -44,7 +44,6 @@ def distRelative(x,y):
 class Site:
 
     sites = list()
-    largestSites = list()
     cost = {}
     weightedCost = {}
 
@@ -155,17 +154,6 @@ def loadSites( inputFileName, harbourBonus, weights):
             isHarbour = True
             weight += weight*harbourBonus
         Site.sites.append(Site(ident, size, x, y, weight, isHarbour))
-
-def loadLandCostsInMeters( distFileName):
-    distFile = open(distFileName, 'r')
-    csvReader = csv.reader(distFile, delimiter=';')
-    # skip header
-    next(csvReader)
-
-    for dist in csvReader:
-        code = dist[0]
-        cost = float(dist[1])/(3600.0*24.0)
-        Site.cost[code] = cost
 
 def loadCosts( distFileName):
     distFile = open(distFileName, 'r')
