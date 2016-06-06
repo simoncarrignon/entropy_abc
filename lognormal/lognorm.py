@@ -3,15 +3,17 @@
 import numpy as np
 import csv
 
-def distRelative(x,y):
+def distAbs(x,y):
     # logarithmic to penalize huge sites
-    xValues = np.log(x)
-    yValues = np.log(y)
- 
-    diff = np.sum(np.absolute(xValues-yValues))
-    print('diff:',diff)
+    diff = np.sum(np.absolute(x-y))
+    print('diff abs:',diff)
     return diff
 
+def distLog(x,y):
+    # logarithmic to penalize huge sites
+    diff = np.sum(np.absolute(np.log(x)-np.log(y)))
+    print('diff log:',diff)
+    return diff
 
 def loadHistoricalSites( inputFileName, numSites ):
     sites = np.empty([numSites])
@@ -27,7 +29,7 @@ def loadHistoricalSites( inputFileName, numSites ):
     return sites    
 
 class Experiment:
-    def __init__(self, numRun, alpha, beta, innovationRate,numSites):
+    def __init__(self, numRun, alpha, beta, innovationRate,numSites, costs):
         self.numRun = numRun
         # priors
 
@@ -35,6 +37,7 @@ class Experiment:
         self.beta = beta
         self.innovationRate = innovationRate
         self.numSites = numSites
+        self.costs = costs
 
     def __str__(self):
         result = 'experiment: '+str(self.numRun)+' alpha: '+str('%.2f')%self.alpha+' beta: '+str('%.2f')%self.beta+' innovation rate: '+str('%.2f')%self.innovationRate
@@ -54,11 +57,8 @@ def loadCosts( distFileName, numSites):
     return costs           
 
 def updateWeights(weights, strategies):
-    result = np.zeros(len(weights))
-    for i in range(len(result)):
-        growth = np.random.normal(strategies[i], 0.1)
-        result[i] = np.exp(np.log(weights[i]) + np.log(1+growth))
-    return result
+    result = np.exp(np.log(weights) + np.log(1+np.random.normal(strategies,0.1)))
+    return result               
 
 def updateStrategies(strategies, innovationRate):
     result = np.copy(strategies)
@@ -82,14 +82,13 @@ def selectStrategies(strategies, costs, weights, alpha):
 def run(experiment, storeResults):
     steps = 100
 
-    weights = np.zeros([experiment.numSites, steps])
+    weights = np.empty([experiment.numSites, steps])
     weights[:,0] = np.full(experiment.numSites, 50)
 
-    strategies = np.zeros([experiment.numSites, steps])
+    strategies = np.empty([experiment.numSites, steps])
     strategies[:,0] = np.full(experiment.numSites, 0)
 
-    costs = loadCosts('../data/costMatrixSea.csv',experiment.numSites)
-    costs = np.exp(-1.0*experiment.beta*costs)
+    costs = np.exp(-1.0*experiment.beta*experiment.costs)
 
     for i in range(1,steps):
         weights[:,i] = updateWeights(weights[:,i-1], strategies[:,i-1])

@@ -4,9 +4,9 @@ import lognorm
 
 
 def singleRun():
-    alpha = 0.9
-    beta = 0.5
-    innovationRate = 0.001
+    alpha = 1.788
+    beta = 0.544
+    innovationRate = 0.007
   
     sites = '../data/cities_weights.csv'
     # it speeds up the run

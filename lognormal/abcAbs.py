@@ -17,10 +17,10 @@ numSites = 140
 costs = lognorm.loadCosts('../data/costMatrixSea.csv',numSites)
 sites = '../data/cities_weights.csv'
 data = lognorm.loadHistoricalSites(sites, numSites)
-eps = threshold.LinearEps(10, 180, 130)
+eps = threshold.LinearEps(10, 8000, 2000)
 priors = sampler.TophatPrior([0,0,0],[2,2,0.01])
 
-sampler = sampler.Sampler(N=200, Y=data, postfn=postfn, dist=lognorm.distLog, threads=16)
+sampler = sampler.Sampler(N=200, Y=data, postfn=postfn, dist=lognorm.distAbs, threads=16)
 
 for pool in sampler.sample(priors, eps):
     print("T: {0}, eps: {1:>.4f}, ratio: {2:>.4f}".format(pool.t, pool.eps, pool.ratio))
