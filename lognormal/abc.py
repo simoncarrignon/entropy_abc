@@ -7,8 +7,7 @@ import numpy as np
 
 def postfn(params):
     global costs
-    numSites = 140
-    experiment = lognorm.Experiment(0, params[0], params[1], params[2], numSites, costs)
+    experiment = lognorm.Experiment(params[0], params[1], params[2], params[3], 140, costs, 230)
     simSizes = lognorm.run(experiment, False)
     return simSizes
 
@@ -17,10 +16,10 @@ numSites = 140
 costs = lognorm.loadCosts('../data/costMatrixSea.csv',numSites)
 sites = '../data/cities_weights.csv'
 data = lognorm.loadHistoricalSites(sites, numSites)
-eps = threshold.LinearEps(10, 180, 130)
-priors = sampler.TophatPrior([0,0,0],[2,2,0.01])
+eps = threshold.LinearEps(30, 6000, 3000)
+priors = sampler.TophatPrior([0,0,0,0.0001],[2,2,2,2])
 
-sampler = sampler.Sampler(N=200, Y=data, postfn=postfn, dist=lognorm.distLog, threads=16)
+sampler = sampler.Sampler(N=200, Y=data, postfn=postfn, dist=lognorm.distAbs, threads=16)
 
 for pool in sampler.sample(priors, eps):
     print("T: {0}, eps: {1:>.4f}, ratio: {2:>.4f}".format(pool.t, pool.eps, pool.ratio))

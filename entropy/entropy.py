@@ -1,8 +1,15 @@
 #!/usr/bin/python3
 
 import csv, math, sys, argparse, random
-import numpy
+import numpy as np
 from scipy.stats.stats import pearsonr
+
+def distAbs(x,y):  
+    xValues = np.array([site.size for site in x])
+    yValues = np.array([site.weight for site in y])
+    diff = np.sum(np.absolute(xValues-yValues))
+    print('diff abs:',diff)
+    return diff
 
 def distRelative(x,y):
     if x[0].weight == -1 and y[0].weight == -1:
@@ -14,8 +21,8 @@ def distRelative(x,y):
 
     # x is data, y is sim
     if x[0].weight == -1:
-        xValues = numpy.array([site.size for site in x])
-        yValues = numpy.array([site.weight for site in y])
+        xValues = np.array([site.size for site in x])
+        yValues = np.array([site.weight for site in y])
         # normalize
         yValues = (yValues-min(yValues))/(max(yValues)-min(yValues))
         # transform weights to sizes
@@ -23,16 +30,16 @@ def distRelative(x,y):
        
     # y is data, x is sim
     else:
-        yValues = numpy.array([site.size for site in y])
-        xValues = numpy.array([site.weight for site in x])
+        yValues = np.array([site.size for site in y])
+        xValues = np.array([site.weight for site in x])
         # normalize
         xValues = (xValues-min(xValues))/(max(xValues)-min(xValues))
         # transform weights to sizes
         xValues = xValues*(max(yValues)-min(yValues))+min(yValues)
 
     # logarithmic to penalize huge sites
-    xValues = numpy.log(xValues)
-    yValues = numpy.log(yValues)
+    xValues = np.log(xValues)
+    yValues = np.log(yValues)
  
     diff = 0
     for i in range(len(xValues)):
@@ -143,7 +150,7 @@ def loadSites( inputFileName, harbourBonus, weights):
 
         # if no predefined weights then random sample from 1-100
         if weights is None:
-            weight = random.randint(1,100)
+            weight = 1
         else:
             weight = weights[i]
         i += 1
