@@ -31,7 +31,7 @@ rightBounds[1] = 2
 
 priors = sampler.TophatPrior(leftBounds, rightBounds)
 
-sampler = sampler.Sampler(N=200, Y=data, postfn=postfn, dist=entropy.distRelative, threads=16)
+sampler = sampler.Sampler(N=10, Y=data, postfn=postfn, dist=entropy.distRelative, threads=4)
 
 for pool in sampler.sample(priors, eps):
     print("T: {0}, eps: {1:>.4f}, ratio: {2:>.4f}".format(pool.t, pool.eps, pool.ratio))

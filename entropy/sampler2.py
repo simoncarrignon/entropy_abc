@@ -228,12 +228,8 @@ class Sampler(object):
         eps = eps_proposal.next()
 
         wrapper = _RejectionSamplingWrapper(self, eps, prior)
-        print("yeahman")
-        print(wrapper)
-
         
         res = list(self.mapFunc(wrapper, range(self.N)))
-
         thetas = np.array([theta for (theta, _, _) in res])
         dists = np.array([dist for (_, dist, _) in res])
         cnts = np.sum([cnt for (_, _, cnt) in res])
@@ -300,7 +296,6 @@ class _RejectionSamplingWrapper(object):  # @DontTrace
         self.prior = prior
     
     def __call__(self, i):
-        print(i)
         cnt = 1
         try: # setting seed to prevent problem with multiprocessing 
             self._random.seed(i)
@@ -310,8 +305,6 @@ class _RejectionSamplingWrapper(object):  # @DontTrace
             thetai = self.prior()
             X = self.postfn(thetai)
             p = np.asarray(self.distfn(X, self.Y))
-            #print("eps:")
-            #print(self.eps)
             if np.all(p <= self.eps):
                 break
             cnt+=1
