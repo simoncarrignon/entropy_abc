@@ -33,12 +33,12 @@ def postfn(params):
 
 data=0 #Our idealized input
 
-eps = threshold.LinearEps(5, 10, 2)
+eps = threshold.LinearEps(2,10 , 5)
 
 ##priors:market_size,mu,N,G,step)
 priors = sampler.TophatPrior([0,.5,100,2,10],[1,1,105,2.1,20])
 
-sampler = sampler.Sampler(N=100, Y=data, postfn=postfn, dist=ceec.dist, threads=4)
+sampler = sampler.Sampler(N=10, Y=data, postfn=postfn, dist=ceec.dist, threads=4)
 
 for pool in sampler.sample(priors, eps):
     print("T: {0}, eps: {1:>.4f}, ratio: {2:>.4f}".format(pool.t, pool.eps, pool.ratio))

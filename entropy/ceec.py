@@ -81,6 +81,8 @@ def runCeec(experiment, storeResults):
     bashCommand = 'bash ./extractlast.sh '+os.path.join(experiment.particleDirectory,'agents.csv')
     process = subprocess.Popen(bashCommand, stdout=subprocess.PIPE,shell=True)
     output, error = process.communicate()
+    bashCommand = 'rm -rf '+os.path.join(experiment.particleDirectory,"data") + ' '+os.path.join(experiment.particleDirectory,"logs")+ ' '+os.path.join(experiment.particleDirectory,"*.gdf")
+    process = subprocess.Popen(bashCommand, stdout=subprocess.PIPE,shell=True)
     #print("pandora run with particule: "+experiment.expId+", done with exit:"+str(error))
 
     score = 1000
