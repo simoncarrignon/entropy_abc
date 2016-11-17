@@ -25,15 +25,14 @@ from collections import namedtuple
 import numpy as np
 from scipy import stats
 from scipy import spatial
-import os
-import entropy
 
 __all__ = ["GaussianPrior", 
            "TophatPrior", 
            "ParticleProposal", 
            "KNNParticleProposal", 
            "OLCMParticleProposal", 
-           "Sampler", 
+           "Sampler",
+           "PoolSpec", 
            "weighted_cov", 
            "weighted_avg_and_std"
            ]
@@ -96,47 +95,20 @@ class ParticleProposal(object):
         self.sigma = 2 * weighted_cov(pool.thetas, pool.ws)
     
     def __call__(self, i):
-        cnt = 1
         # setting seed to prevent problem with multiprocessing
-        self._random.seed(i)  
-#        logFile = open('particle_'+str(i)+'_eps_'+str('%.2f')%self.eps+'.txt', 'a')
-#        logFile.write('starting sample\n')
-#        logFile.close()
+        self._random.seed(i)
+        cnt = 1
         while True:
-#            logFile = open('particle_'+str(i)+'_eps_'+str('%.2f')%self.eps+'.txt', 'a')
-#            logFile.write('starting selection between '+str(self.N)+' particles\n')
-#            for j in range(len(self.pool.ws)):
-#                logFile.write('particle: '+str(j)+' thetas: '+str(self.pool.thetas[j])+' have weight: '+str(self.pool.ws[j])+'\n')
             idx = self._random.choice(range(self.N), 1, p= self.pool.ws/np.sum(self.pool.ws))[0]
             theta = self.pool.thetas[idx]
-#            logFile.write('idx chosen: '+str(idx)+' with thetas: '+str(theta)+'\n')
-#            logFile.close()
-
             sigma = self._get_sigma(theta, **self.kwargs)
             sigma = np.atleast_2d(sigma)
             thetap = self._random.multivariate_normal(theta, sigma)
-            while (thetap<0).any():
-                thetap = self._random.multivariate_normal(theta, sigma)
-                    
-#            logFile = open('particle_'+str(i)+'_eps_'+str('%.2f')%self.eps+'.txt', 'a')
-#            logFile.write('\texecuting run with new thetap:'+str(thetap)+'\n')
-#            logFile.close()
-
             X = self.postfn(thetap)
             p = np.asarray(self.distfn(X, self.Y))
             
             if np.all(p <= self.eps):
-                logFile = open('particle_'+str(i)+'_eps_'+str('%.2f')%self.eps+'.txt', 'a')
-                logFile.write('ok! i:'+str(i)+' - eps: '+str('%.2f')%self.eps+' - thetas: '+str(thetap)+' - dist: '+str(p)+'\n')
-                initialWeights = [site.initialWeight for site in X]
-                logFile.write('initial weights: '+str(initialWeights)+'\n')
-                logFile.write('prevSims:'+str(cnt)+'\n')
-                logFile.close()
                 break
-
-#            logFile = open('particle_'+str(i)+'_eps_'+str('%.2f')%self.eps+'.txt', 'a')
-#            logFile.write('\tfailed. i:'+str(i)+' - eps: '+str('%.2f')%self.eps+' - thetas: '+str(thetap)+' - dist: '+str(p)+'\n')
-#            logFile.close()
             cnt+=1
         return thetap, p, cnt
 
@@ -194,7 +166,7 @@ class Sampler(object):
     :param pool: (optional) a pool instance which has a <map> function 
     """
     
-    particle_proposal_cls = OLCMParticleProposal
+    particle_proposal_cls = ParticleProposal
     particle_proposal_kwargs = {}
     
     def __init__(self, N, Y, postfn, dist, threads=1, pool=None):
@@ -215,37 +187,34 @@ class Sampler(object):
             self.mapFunc  = self.pool.map
             
     
-    def sample(self, prior, eps_proposal):
+    def sample(self, prior, eps_proposal, pool=None):
         """
         Launches the sampling process. Yields the intermediate results per iteration.
         
         :param prior: instance of a prior definition (or an other callable)  see :py:class:`sampler.GaussianPrior`
         :param eps_proposal: an instance of a threshold proposal (or an other callable) see :py:class:`sampler.ConstEps`
+        :param pool: (optional) a PoolSpec instance,if not None the initial rejection sampling 
+        will be skipped and the pool is used for the further sampling
         
         :yields pool: yields a namedtuple representing the values of one iteration
         """
+        if pool is None:
+            eps = eps_proposal.next()
+            wrapper = _RejectionSamplingWrapper(self, eps, prior)
+            
+            res = list(self.mapFunc(wrapper, self._random.randint(0, np.iinfo(np.uint32).max, self.N)))
+            thetas = np.array([theta for (theta, _, _) in res])
+            dists = np.array([dist for (_, dist, _) in res])
+            cnts = np.sum([cnt for (_, _, cnt) in res])
+            ws = np.ones(self.N) / self.N
+            
+            pool = PoolSpec(0, eps, self.N/cnts, thetas, dists, ws)
+            yield pool
         
-        eps = eps_proposal.next()
-
-        wrapper = _RejectionSamplingWrapper(self, eps, prior)
-        print("yeahman")
-        print(wrapper)
-
-        
-        res = list(self.mapFunc(wrapper, range(self.N)))
-
-        thetas = np.array([theta for (theta, _, _) in res])
-        dists = np.array([dist for (_, dist, _) in res])
-        cnts = np.sum([cnt for (_, _, cnt) in res])
-        ws = np.ones(self.N) / self.N
-        
-        pool = PoolSpec(0, eps, self.N/cnts, thetas, dists, ws)
-        yield pool
-        
-        for t, eps in enumerate(eps_proposal, 1):
+        for t, eps in enumerate(eps_proposal, pool.t + 1):
             particleProposal = self.particle_proposal_cls(self, eps, pool, self.particle_proposal_kwargs)
             
-            res = list(self.mapFunc(particleProposal, range(self.N)))
+            res = list(self.mapFunc(particleProposal, self._random.randint(0, np.iinfo(np.uint32).max, self.N)))
             thetas = np.array([theta for (theta, _, _) in res])
             dists = np.array([dist for (_, dist, _) in res]) 
             cnts = np.sum([cnt for (_, _, cnt) in res])
@@ -265,7 +234,9 @@ class Sampler(object):
         Tries to close the pool (avoid hanging threads)
         """
         if hasattr(self, "pool") and self.pool is not None:
-            self.pool.close()
+            try:
+                self.pool.close()
+            except: pass
 
    
 class _WeightWrapper(object):  # @DontTrace
@@ -281,7 +252,7 @@ class _WeightWrapper(object):  # @DontTrace
         self.thetas = thetas
     
     def __call__(self, theta):
-        kernel = stats.multivariate_normal(theta, self.sigma, allow_singular=True).pdf
+        kernel = stats.multivariate_normal(theta, self.sigma).pdf
         w = self.prior(theta) / np.sum(self.ws * kernel(self.thetas))
         return w
     
@@ -300,18 +271,17 @@ class _RejectionSamplingWrapper(object):  # @DontTrace
         self.prior = prior
     
     def __call__(self, i):
-        print(i)
-        cnt = 1
-        try: # setting seed to prevent problem with multiprocessing 
-            self._random.seed(i)
+        # setting seed to prevent problem with multiprocessing
+        self._random.seed(i)
+        try:
             self.prior._random = self._random 
         except: pass
+        
+        cnt = 1
         while True:
             thetai = self.prior()
             X = self.postfn(thetai)
             p = np.asarray(self.distfn(X, self.Y))
-            #print("eps:")
-            #print(self.eps)
             if np.all(p <= self.eps):
                 break
             cnt+=1
