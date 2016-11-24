@@ -95,6 +95,7 @@ def runCeec(experiment, storeResults):
 
     print("Coomputed score mean: "+str(score))
     
+    score=score/(experiment.indices['cstep'] * (experiment.indices['ngoods']-1))
  
     return  score
     
