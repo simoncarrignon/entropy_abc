@@ -4,6 +4,7 @@ import csv, math, sys, argparse, random,os,errno
 from bs4 import BeautifulSoup as bs
 import numpy as np
 import subprocess
+import logging
 
 #index of the different parameters
 indices= {  "mu"            : 0, 
@@ -13,7 +14,6 @@ indices= {  "mu"            : 0,
             "cstep"         : 4}
 
 def dist(x,y):
-    print("reading pandora/ceec result and checkl if the score mean is close to 0")
     diff= x-y;
     return diff
 
@@ -43,7 +43,7 @@ class Experiment:
         soup.culture['step']=str(int(self.params[indices['cstep']]))
         soup.culture['mutation']=str(self.params[indices['mu']])
         soup.numSteps['serializeResolution']=str(int(self.params[indices['cstep']])*3)
-        soup.numSteps['value']=str(int(self.params[indices['cstep']])*3*10)
+        soup.numSteps['value']=str(int(self.params[indices['cstep']])*3*1000)
         soup.numSteps['serializeResolution']=soup.numSteps['value']
 
 
@@ -67,7 +67,7 @@ class Experiment:
             out.write(soup.prettify())
             out.close()
         else:
-            print ( "particle already tested")  
+            logging.warning( "particle already tested")  
 
     def __str__(self):
         result = 'experiment: '+str(self.expId)#+' alpha: '+str('%.2f')%self.alpha+' beta: '+str('%.2f')%self.beta+' harbour bonus: '+str('%.2f')%self.harbourBonus
@@ -91,11 +91,17 @@ def runCeec(experiment, storeResults):
         last_score=map(float,last_score)
         score=np.mean(last_score)
     except:
-        print("the file agents.csv of the particule:"+experiment.expId+" seems to have a problem ")
+        logging.warning("the file agents.csv of the particule:"+experiment.expId+" seems to have a problem ")
 
-    print("Coomputed score mean: "+str(score))
     
-    score=score/(experiment.indices['cstep'] * (experiment.indices['ngoods']-1))
+    logging.info(score)
+    logging.info(experiment.params[indices['cstep']] )
+    logging.info(experiment.params[indices['ngoods']] )
+    logging.info("score: "+str(score))
+
+    score=score/(experiment.params[indices['cstep']] * (experiment.params[indices['ngoods']]-1))
+
+    logging.info("score bar: "+str(score))
  
     return  score
     
