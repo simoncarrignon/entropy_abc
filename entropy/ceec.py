@@ -20,6 +20,8 @@ def dist(x,y):
 class Experiment:
     def __init__(self, expId, params,binpath,outpath):
 
+
+        self.consistence=True
         self.params = params
         self.expId = "_".join([str(int(self.params[indices['ngoods']])),str(int(self.params[indices['nagents']])),str(self.params[indices['market_size']]),str(int(self.params[indices['cstep']])),str(self.params[indices['mu']])])
         self.binpath=binpath
@@ -33,8 +35,23 @@ class Experiment:
         #self.harbourBonus = harbourBonus
         #self.weights = weights
         #print("prepare config file folder")
+        if((int(self.params[indices['nagents']]) < 2) or  #if num <2 
+           (int(self.params[indices['nagents']]) < int(self.params[indices['ngoods']]) ) or #We should have at least as much agents as number of good
+           (int(self.params[indices['ngoods']]) < 2 ) or #No exchange possible if we don't have at least 2 goods
+           (int(self.params[indices['cstep']]) < 1 ) or  #No experiments if no cultural step
+           (self.params[indices['mu']] <= 0 ) or #No meaning if mutation rate <0 or >1
+           (self.params[indices['mu']] > 1 ) or 
+           (self.params[indices['market_size']] > 1 ) or  #no need to explore more than 100% of the market
+           (self.params[indices['market_size']] <= 0 ) #agent has to visit the market to exchange stuff
+          ):
+            #print("baddd",params)
+            logging.warning( "particle is not good")  
+            self.consistence=False
 
         soup = bs(open(self.binpath+"/config.xml"),'xml') #read a generic config file
+
+
+
 
         ##change the different value in the XML file with the parameters (thetas) of this experiments ( particle)
         soup.goods['num']=str(int(self.params[indices['ngoods']]))
@@ -43,7 +60,7 @@ class Experiment:
         soup.culture['step']=str(int(self.params[indices['cstep']]))
         soup.culture['mutation']=str(self.params[indices['mu']])
         soup.numSteps['serializeResolution']=str(int(self.params[indices['cstep']])*3)
-        soup.numSteps['value']=str(int(self.params[indices['cstep']])*3*1000)
+        soup.numSteps['value']=str(int(self.params[indices['cstep']])*3*2)
         soup.numSteps['serializeResolution']=soup.numSteps['value']
 
 
@@ -57,7 +74,7 @@ class Experiment:
         #print("num of mu=",soup.culture['mutation'])
 
         #print("config_"+str(self.expId)+".xml")
-        if not os.path.isdir(self.particleDirectory):
+        if not os.path.isdir(self.particleDirectory) and self.consistence:
             os.mkdir(self.particleDirectory) #create folder for the exp
             os.mkdir(os.path.join(self.particleDirectory,"logs"))
             os.mkdir(os.path.join(self.particleDirectory,"data"))
@@ -68,30 +85,32 @@ class Experiment:
             out.close()
         else:
             logging.warning( "particle already tested")  
+            self.consistence=False
 
     def __str__(self):
         result = 'experiment: '+str(self.expId)#+' alpha: '+str('%.2f')%self.alpha+' beta: '+str('%.2f')%self.beta+' harbour bonus: '+str('%.2f')%self.harbourBonus
         return result
 
 def runCeec(experiment, storeResults):
-    #print("run pandora")
-    bashCommand = 'cd '+experiment.particleDirectory + '&& ./province && ./analysis ' +' && cd --'
-    process = subprocess.Popen(bashCommand, stdout=subprocess.PIPE,shell=True)
-    output, error = process.communicate()
-    bashCommand = 'bash ./extractlast.sh '+os.path.join(experiment.particleDirectory,'agents.csv')
-    process = subprocess.Popen(bashCommand, stdout=subprocess.PIPE,shell=True)
-    output, error = process.communicate()
-    bashCommand = 'rm -rf '+os.path.join(experiment.particleDirectory,"data") + ' '+os.path.join(experiment.particleDirectory,"logs")+ ' '+os.path.join(experiment.particleDirectory,"*.gdf")
-    process = subprocess.Popen(bashCommand, stdout=subprocess.PIPE,shell=True)
-    #print("pandora run with particule: "+experiment.expId+", done with exit:"+str(error))
-
     score = 1000
-    last_score=output.strip().split("\n")
-    try:
-        last_score=map(float,last_score)
-        score=np.mean(last_score)
-    except:
-        logging.warning("the file agents.csv of the particule:"+experiment.expId+" seems to have a problem ")
+    if(experiment.consistence):
+        #print("run pandora")
+        bashCommand = 'cd '+experiment.particleDirectory + '&& ./province && ./analysis ' +' && cd --'
+        process = subprocess.Popen(bashCommand, stdout=subprocess.PIPE,shell=True)
+        output, error = process.communicate()
+        bashCommand = 'bash ./extractlast.sh '+os.path.join(experiment.particleDirectory,'agents.csv')
+        process = subprocess.Popen(bashCommand, stdout=subprocess.PIPE,shell=True)
+        output, error = process.communicate()
+        bashCommand = 'rm -rf '+os.path.join(experiment.particleDirectory,"data") + ' '+os.path.join(experiment.particleDirectory,"logs")+ ' '+os.path.join(experiment.particleDirectory,"*.gdf")
+        process = subprocess.Popen(bashCommand, stdout=subprocess.PIPE,shell=True)
+        #print("pandora run with particule: "+experiment.expId+", done with exit:"+str(error))
+
+        last_score=output.strip().split("\n")
+        try:
+            last_score=map(float,last_score)
+            score=np.mean(last_score)
+        except:
+            logging.warning("the file agents.csv of the particule:"+experiment.expId+" seems to have a problem ")
 
     
     logging.info(score)
