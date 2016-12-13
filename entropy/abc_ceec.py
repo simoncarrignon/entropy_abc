@@ -6,7 +6,7 @@ import numpy as np
 import ceec 
 import os
 import sys
-import logging
+import logging,operator
 
 
 if len(sys.argv) < 2:
@@ -30,25 +30,32 @@ def postfn(params):
     simResult = ceec.runCeec(experiment, False)
     return simResult
 
-logging.basicConfig(filename=os.path.join(expe_path,'ceec_abc.log'),level=logging.WARNING,filemode="w")
+logging.basicConfig(filename=os.path.join(expe_path,'ceec_abc.log'),level=logging.INFO,filemode="w")
 
 
 data=0 #Our idealized input
 
-eps = threshold.LinearEps(2,.8 , .6)
+#eps = threshold.ExponentialConstEps(.3, .01,5,5)
+eps = threshold.ExponentialEps(2,2000 ,.2)
 
 ##priors:market_size,mu,N,G,step)
-priors = sampler.TophatPrior([0,.5,100,2,10],[1,1,200,3,20])
-
-sampler = sampler.Sampler(N=100, Y=data, postfn=postfn, dist=ceec.dist, threads=2)
+priors = sampler.TophatPrior([0,0,200,2,10],[1,1,400,6,30])
+ 
+sampler = sampler.Sampler(N=500, Y=data, postfn=postfn, dist=ceec.dist, threads=1)
 
 for pool in sampler.sample(priors, eps):
     print("T: {0}, eps: {1:>.4f}, ratio: {2:>.4f}".format(pool.t, pool.eps, pool.ratio))
     for i, (mean, std) in enumerate(zip(np.mean(pool.thetas, axis=0), np.std(pool.thetas, axis=0))):
         print(u"    theta[{0}]: {1:>.4f} \u00B1 {2:>.4f}".format(i, mean,std))
-    np.savetxt(os.path.join(expe_path,"result_"+str('%.2f')%pool.eps+'.csv'), pool.thetas, delimiter=",", fmt='%1.5f')
+    print(ceec.indices.keys())
+    print(sorted(ceec.indices.items(),key=operator.itemgetter(1)))
+    s=(sorted(ceec.indices.items(),key=operator.itemgetter(1)))
+    slsit=[v[0] for e,v in enumerate(s)]
+    print(slsit)
+    np.savetxt(os.path.join(expe_path,"result_"+str('%.2f')%pool.eps+'.csv'), pool.thetas, delimiter=",", header=",".join(slsit),fmt='%1.5f',comments="")
+
 
 print(pool.thetas)
-np.savetxt("foo.csv", pool.thetas, delimiter=";", fmt='%1.5f')
+#np.savetxt("foo.csv", pool.thetas, delimiter=";", fmt='%1.5f')
 
 
