@@ -36,12 +36,12 @@ logging.basicConfig(filename=os.path.join(expe_path,'ceec_abc.log'),level=loggin
 data=0 #Our idealized input
 
 #eps = threshold.ExponentialConstEps(.3, .01,5,5)
-eps = threshold.ExponentialEps(2,2000 ,.2)
+eps = threshold.ExponentialEps(2,3000,.2)
 
 ##priors:market_size,mu,N,G,step)
-priors = sampler.TophatPrior([0,0,200,2,10],[1,1,400,6,30])
+priors = sampler.TophatPrior([0,0,5,2,10],[1,1,200,6,30])
  
-sampler = sampler.Sampler(N=500, Y=data, postfn=postfn, dist=ceec.dist, threads=1)
+sampler = sampler.Sampler(N=300, Y=data, postfn=postfn, dist=ceec.dist, threads=1)
 
 for pool in sampler.sample(priors, eps):
     print("T: {0}, eps: {1:>.4f}, ratio: {2:>.4f}".format(pool.t, pool.eps, pool.ratio))
@@ -57,5 +57,6 @@ for pool in sampler.sample(priors, eps):
 
 print(pool.thetas)
 #np.savetxt("foo.csv", pool.thetas, delimiter=";", fmt='%1.5f')
+
 
 
