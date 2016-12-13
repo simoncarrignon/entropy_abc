@@ -19,8 +19,6 @@ def dist(x,y):
 
 class Experiment:
     def __init__(self, expId, params,binpath,outpath):
-
-
         self.consistence=True
         self.params = params
         self.expId = "_".join([str(int(self.params[indices['ngoods']])),str(int(self.params[indices['nagents']])),str(self.params[indices['market_size']]),str(int(self.params[indices['cstep']])),str(self.params[indices['mu']])])
@@ -60,7 +58,7 @@ class Experiment:
         soup.culture['step']=str(int(self.params[indices['cstep']]))
         soup.culture['mutation']=str(self.params[indices['mu']])
         soup.numSteps['serializeResolution']=str(int(self.params[indices['cstep']])*3)
-        soup.numSteps['value']=str(int(self.params[indices['cstep']])*3*2)
+        soup.numSteps['value']=str(int(self.params[indices['cstep']])*3*100)
         soup.numSteps['serializeResolution']=soup.numSteps['value']
 
 
@@ -74,7 +72,7 @@ class Experiment:
         #print("num of mu=",soup.culture['mutation'])
 
         #print("config_"+str(self.expId)+".xml")
-        if not os.path.isdir(self.particleDirectory) and self.consistence:
+        if (not os.path.isdir(self.particleDirectory)) and self.consistence:
             os.mkdir(self.particleDirectory) #create folder for the exp
             os.mkdir(os.path.join(self.particleDirectory,"logs"))
             os.mkdir(os.path.join(self.particleDirectory,"data"))
@@ -84,7 +82,10 @@ class Experiment:
             out.write(soup.prettify())
             out.close()
         else:
-            logging.warning( "particle already tested")  
+            if (os.path.isdir(self.particleDirectory)):  
+                logging.warning( "particle already tested")  
+            else:
+                logging.warning( "particle consistence prob")  
             self.consistence=False
 
     def __str__(self):
@@ -109,18 +110,21 @@ def runCeec(experiment, storeResults):
         try:
             last_score=map(float,last_score)
             score=np.mean(last_score)
+            score=score/(experiment.params[indices['cstep']] * (experiment.params[indices['ngoods']]-1))
         except:
             logging.warning("the file agents.csv of the particule:"+experiment.expId+" seems to have a problem ")
+            score = 1000
 
+    else:
+        logging.warning("particle consistence problem")
+        score = 1000
     
-    logging.info(score)
-    logging.info(experiment.params[indices['cstep']] )
-    logging.info(experiment.params[indices['ngoods']] )
-    logging.info("score: "+str(score))
+    #logging.info(score)
+    #logging.info(experiment.params[indices['cstep']] )
+    #logging.info(experiment.params[indices['ngoods']] )
 
-    score=score/(experiment.params[indices['cstep']] * (experiment.params[indices['ngoods']]-1))
 
-    logging.info("score bar: "+str(score))
+    logging.info("exp:"+experiment.expId+",score: "+str(score))
  
-    return  score
+    return score
     
