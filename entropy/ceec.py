@@ -43,7 +43,6 @@ class Experiment:
            (self.params[indices['market_size']] <= 0 ) #agent has to visit the market to exchange stuff
           ):
             #print("baddd",params)
-            logging.warning( "particle is not good")  
             self.consistence=False
 
         soup = bs(open(self.binpath+"/config.xml"),'xml') #read a generic config file
@@ -85,7 +84,7 @@ class Experiment:
             if (os.path.isdir(self.particleDirectory)):  
                 logging.warning( "particle already tested")  
             else:
-                logging.warning( "particle consistence prob")  
+                logging.warning( "unconsistent particle")  
             self.consistence=False
 
     def __str__(self):
@@ -116,7 +115,6 @@ def runCeec(experiment, storeResults):
             score = 1000
 
     else:
-        logging.warning("particle consistence problem")
         score = 1000
     
     #logging.info(score)
