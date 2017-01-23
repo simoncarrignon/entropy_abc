@@ -13,6 +13,11 @@ indices= {  "mu"            : 0,
             "ngoods"        : 3,
             "cstep"         : 4}
 
+defval= {  "mu"            : 0.5, 
+            "market_size"   : .6,
+            "nag_good"       : 100,
+            "ngoods"        : 3,
+            "cstep"         : 20}
 def dist(x,y):
     diff= x-y;
     return diff
@@ -21,25 +26,20 @@ class Experiment:
     def __init__(self, expId, params,binpath,outpath):
         self.consistence=True
         self.params = params
-        self.expId = "_".join([str(int(self.params[indices['ngoods']])),str(int(self.params[indices['nag_good']])),str(self.params[indices['market_size']]),str(int(self.params[indices['cstep']])),str(self.params[indices['mu']])])
+        #self.expId = "_".join([str(int(self.params[indices['ngoods']])),str(int(self.params[indices['nag_good']])),str(self.params[indices['market_size']]),str(int(self.params[indices['cstep']])),str(self.params[indices['mu']])])
+        self.expId = "_".join([str(defval['ngoods']),str(defval['nag_good']),str(defval['market_size']),str(defval['cstep']),str(self.params[indices['mu']])])
         self.binpath=binpath
         self.outpath=outpath
 
-        #for key in indices.keys():
-        #    print(key, ": ", self.params[indices[key]])
-        # priors
-        #= alpha
-        #self.beta = beta
-        #self.harbourBonus = harbourBonus
-        #self.weights = weights
-        #print("prepare config file folder")
-        if((int(self.params[indices['nag_good']]) < 1) or  #if num <2 
-           (int(self.params[indices['ngoods']]) < 2 ) or #No exchange possible if we don't have at least 2 goods
-           (int(self.params[indices['cstep']]) < 1 ) or  #No experiments if no cultural step
+
+        if(
+           #(int(self.params[indices['nag_good']]) < 1) or  #if num <2 
+           #(int(self.params[indices['ngoods']]) < 2 ) or #No exchange possible if we don't have at least 2 goods
+           #(int(self.params[indices['cstep']]) < 1 ) or  #No experiments if no cultural step
            (self.params[indices['mu']] <= 0 ) or #No meaning if mutation rate <0 or >1
-           (self.params[indices['mu']] > 1 ) or 
-           (self.params[indices['market_size']] > 1 ) or  #no need to explore more than 100% of the market
-           (self.params[indices['market_size']] <= 0 ) #agent has to visit the market to exchange stuff
+           (self.params[indices['mu']] > 1 ) #or 
+           #(self.params[indices['market_size']] > 1 ) or  #no need to explore more than 100% of the market
+           #(self.params[indices['market_size']] <= 0 ) #agent has to visit the market to exchange stuff
           ):
             #print("baddd",params)
             self.consistence=False
@@ -50,13 +50,15 @@ class Experiment:
 
 
         ##change the different value in the XML file with the parameters (thetas) of this experiments ( particle)
-        soup.goods['num']=str(int(self.params[indices['ngoods']]))
-        soup.numAgents['value']=str(int(self.params[indices['ngoods']])*int(self.params[indices['nag_good']]))
-        soup.market['size']=str(self.params[indices['market_size']])
-        soup.culture['step']=str(int(self.params[indices['cstep']]))
         soup.culture['mutation']=str(self.params[indices['mu']])
-        soup.numSteps['serializeResolution']=str(int(self.params[indices['cstep']])*3)
-        soup.numSteps['value']=str(int(self.params[indices['cstep']])*3*100)
+
+        
+        soup.goods['num']=str(defval['ngoods'])
+        soup.numAgents['value']=str(defval['ngoods']*defval['nag_good'])
+        soup.market['size']=str(defval['market_size'])
+        soup.culture['step']=str(defval['cstep'])
+        soup.numSteps['serializeResolution']=str(defval['cstep']*3)
+        soup.numSteps['value']=str(defval['cstep']*3*100)
         soup.numSteps['serializeResolution']=soup.numSteps['value']
 
 
@@ -108,7 +110,7 @@ def runCeec(experiment, storeResults):
         try:
             last_score=map(float,last_score)
             score=np.mean(last_score)
-            score=score/(experiment.params[indices['cstep']] * (experiment.params[indices['ngoods']]-1))
+            score=score/(defval['cstep'] * (defval['ngoods']-1))
         except:
             logging.warning("the file agents.csv of the particule:"+experiment.expId+" seems to have a problem ")
             score = 1000

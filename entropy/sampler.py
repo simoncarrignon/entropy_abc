@@ -98,6 +98,8 @@ class ParticleProposal(object):
         # setting seed to prevent problem with multiprocessing
         self._random.seed(i)
         cnt = 1
+        print("-----")
+        print(self.eps)
         while True:
             idx = self._random.choice(range(self.N), 1, p= self.pool.ws/np.sum(self.pool.ws))[0]
             theta = self.pool.thetas[idx]
