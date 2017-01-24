@@ -15,9 +15,9 @@ indices= {  "mu"            : 0,
 
 defval= {  "mu"            : 0.5, 
             "market_size"   : .6,
-            "nag_good"       : 100,
+            "nag_good"       : 50,
             "ngoods"        : 3,
-            "cstep"         : 20}
+            "cstep"         : 10}
 def dist(x,y):
     diff= x-y;
     return diff
@@ -110,6 +110,7 @@ def runCeec(experiment, storeResults):
         try:
             last_score=map(float,last_score)
             score=np.mean(last_score)
+            print(score)
             score=score/(defval['cstep'] * (defval['ngoods']-1))
         except:
             logging.warning("the file agents.csv of the particule:"+experiment.expId+" seems to have a problem ")
