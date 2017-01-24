@@ -3,4 +3,4 @@
 #and is titlte is misleading:it's not "extractlast"but extract "non 0". It's last ONLY if serializatio time = 2
 
 
-awk 'BEGIN{FS=";"}{if(NR > 1 && $1 > 0)print $10 }' $1
+awk 'BEGIN{FS=";"}{if(NR > 1 && $1 > 0)print $13 }' $1
