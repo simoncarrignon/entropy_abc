@@ -22,17 +22,14 @@ class Experiment:
         self.consistence=True
         self.params = params
         self.expId = "_".join([str(int(self.params[indices['ngoods']])),str(int(self.params[indices['nag_good']])),str(self.params[indices['market_size']]),str(int(self.params[indices['cstep']])),str(self.params[indices['mu']])])
-        self.binpath=binpath
+        self.binpath=binpath #binpath is the path where the executable & generic config ifle are stored 
         self.outpath=outpath
 
         #for key in indices.keys():
         #    print(key, ": ", self.params[indices[key]])
         # priors
-        #= alpha
-        #self.beta = beta
-        #self.harbourBonus = harbourBonus
-        #self.weights = weights
         #print("prepare config file folder")
+
         if((int(self.params[indices['nag_good']]) < 1) or  #if num <2 
            (int(self.params[indices['ngoods']]) < 2 ) or #No exchange possible if we don't have at least 2 goods
            (int(self.params[indices['cstep']]) < 1 ) or  #No experiments if no cultural step
