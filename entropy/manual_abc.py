@@ -112,45 +112,16 @@ class Experiment:
         result = 'experiment: '+str(self.expId)#+' alpha: '+str('%.2f')%self.alpha+' beta: '+str('%.2f')%self.beta+' harbour bonus: '+str('%.2f')%self.harbourBonus
         return result
 
-def runCeec(experiment, storeResults):
-    score = 1000
-    if(experiment.consistence):
-        #print("run pandora")
-        bashCommand = 'cd '+experiment.particleDirectory + ' && ./province && ./analysis ' +' && cd -- \n'
-        #process = subprocess.Popen(bashCommand, stdout=subprocess.PIPE,shell=True)
-        #output, error = process.communicate()
-        bashCommand += 'bash ./extractlast.sh '+os.path.join(experiment.particleDirectory,'agents.csv \n')
-        #process = subprocess.Popen(bashCommand, stdout=subprocess.PIPE,shell=True)
-        #output, error = process.communicate()
-        bashCommand += 'rm -rf '+os.path.join(experiment.particleDirectory,"data") + ' '+os.path.join(experiment.particleDirectory,"logs")+ ' '+os.path.join(experiment.particleDirectory,"*.gdf \n")
-        print(bashCommand)
-        #process = subprocess.Popen(bashCommand, stdout=subprocess.PIPE,shell=True)
-        #print("pandora run with particule: "+experiment.expId+", done with exit:"+str(error))
-
-        #last_score=output.strip().split("\n")
-        #try:
-        #    last_score=map(float,last_score)
-        #    score=np.mean(last_score)
-        #    score=score/(experiment.params[indices['cstep']] * (experiment.params[indices['ngoods']]-1))
-        #except:
-        #    logging.warning("the file agents.csv of the particule:"+experiment.expId+" seems to have a problem ")
-        #    score = 1000
-        with open("set_"+storeResults+".task","a") as taskfile:
-            taskfile.write(bashCommand)
-
-    else:
-        score = 1000
+    def generateTask(experiment, storeResults):
+            #print("run pandora")
+            bashCommand = 'cd '+experiment.particleDirectory + ' && ./province && ./analysis ' +' && cd -- \n'
+            #output, error = process.communicate()
+            bashCommand += 'bash ./extractlast.sh '+os.path.join(experiment.particleDirectory,'agents.csv \n')
+            #output, error = process.communicate()
+            bashCommand += 'rm -rf '+os.path.join(experiment.particleDirectory,"data") + ' '+os.path.join(experiment.particleDirectory,"logs")+ ' '+os.path.join(experiment.particleDirectory,"*.gdf \n")
+        return bashCommand
+        
     
-    #logging.info(score)
-    #logging.info(experiment.params[indices['cstep']] )
-    #logging.info(experiment.params[indices['ngoods']] )
-
-
-    logging.info("exp:"+experiment.expId+",score: "+str(score))
- 
-    return score
-    
-
 class TophatPrior(object):
     """
     Tophat prior
@@ -175,27 +146,10 @@ class TophatPrior(object):
 
 if __name__ == '__main__' :
     priorsDistr={}
-    numParticule=100
-    numproc=100
+    numParticule=10
+    numproc=10
     pdict=mp.Manager().dict()
 
-    #pool=mp.Pool(numParticule)
-    #priors = TophatPrior([0,0,5,2,10],[1,1,200,6,30])
-    #one=Experiment("gege",priors(),"/home/scarrign/ceeculture",".")
-    #runCeec(one,'200')
-    #while(len(even_queue) < numParticule):
-    #    pool.map(one.getScore,(even_queue))
-    #    print(even_queue)
-   #qscores=mp.Queue()
-    #proc = mp.Process(target = one.getScore,args=(qscores,))
-    #proc = mp.Process(target = one.getScore)#,args=(qscores,))
-    #proc.start()
-    #priorsDistr[one.id()]=-1
-        #print(priorsDistr)
-        #proc.join()
-
-    #qscores=mp.Queue()
-        
     while(len(pdict) < numParticule):
         with open("totry.out","w") as ttexp:
             ttexp.write("")
@@ -203,13 +157,4 @@ if __name__ == '__main__' :
             priors = TophatPrior([0,0,5,2,10],[1,1,200,6,30])
             one=Experiment("gege",priors(),"/home/scarrign/ceeculture",".")
             runCeec(one,'200')
-            with open("totry.out","a") as ttexp:
-                ttexp.write(one.id()+"\n")
-   #         #proc = mp.Process(target = one.getScore,args=(qscores,))
-            proc = mp.Process(target = one.getScore,args=(pdict,))
-            proc.start()
-            print(priorsDistr)
-            priorsDistr[one.id()]=-1
-        proc.join()
-        print(priorsDistr)
         print(pdict)
